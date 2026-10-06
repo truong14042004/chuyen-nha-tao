@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="vi" class="no-js">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Chuyện Nhà Táo | Đêm 23 tháng Chạp</title>
+  <meta name="description" content="Trải nghiệm sâu sắc từ những vật dụng và hình ảnh gắn kết với ngày 23 tháng Chạp. Đọc sách 4 chương, nhận thẻ thông hành 4 trạm và khám phá vị Táo của bạn.">
+  <meta name="theme-color" content="#fff8f0">
+
+  <!-- OG image / preview khi share (Checklist kỹ thuật). TODO: thay og-image.jpg 1200x630 thật -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Chuyện Nhà Táo | Đêm 23 tháng Chạp">
+  <meta property="og:description" content="Lật sách 4 chương, nhận thẻ thông hành 4 trạm, khám phá vị Táo của bạn. #ChuyenNhaTao">
+  <meta property="og:image" content="og-image.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preload" href="fish.stl" as="fetch" crossorigin>
+  <script>document.documentElement.classList.replace('no-js', 'js');</script>
+</head>
+<body>
+  <a class="skip-link" href="#doc-sach">Bỏ qua, đến phần đọc sách</a>
+
+  <!-- ===================================================================
+       S01 · HEADER & NAVIGATION
+       =================================================================== -->
+  <header class="site-header" id="site-header">
+    <div class="container">
+      <a class="brand" href="#top" aria-label="Chuyện Nhà Táo, về đầu trang">
+        <span class="brand-seal" aria-hidden="true">Táo</span>
+        <span class="brand-name">Chuyện Nhà Táo</span>
+      </a>
+
+      <nav class="nav-links" aria-label="Điều hướng chính">
+        <a href="#doc-sach" data-nav>Đọc sách</a>
+        <a href="#tram-trai-nghiem" data-nav>Trạm trải nghiệm</a>
+        <!-- PDF: "Tạo Thẻ Yêu Nghiệm" cần xác nhận lại tên. Tạm dùng "Thẻ Vị Táo" khớp thông điệp UGC -->
+        <a href="#the-vi-tao" data-nav>Thẻ Vị Táo</a>
+      </nav>
+
+      <div class="header-actions">
+        <button class="icon-btn" id="motion-toggle" type="button" aria-pressed="true" aria-label="Giảm hiệu ứng chuyển động">
+          <i class="ph ph-sparkle" aria-hidden="true"></i>
+        </button>
+        <button class="icon-btn" id="sound-toggle" type="button" aria-pressed="false" aria-label="Bật tiếng lửa bếp">
+          <i class="ph ph-speaker-slash" aria-hidden="true"></i>
+        </button>
+        <a class="btn btn-primary btn-sm header-cta" href="#doc-sach" data-track="cta_open_book" data-track-from="header">Mở cuốn sách</a>
+        <button class="icon-btn menu-toggle" id="menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-menu" aria-label="Mở menu">
+          <i class="ph ph-list" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="mobile-menu" id="mobile-menu" aria-label="Menu">
+    <a href="#doc-sach">Đọc sách <i class="ph ph-arrow-right" aria-hidden="true"></i></a>
+    <a href="#tram-trai-nghiem">Trạm trải nghiệm <i class="ph ph-arrow-right" aria-hidden="true"></i></a>
+    <a href="#the-vi-tao">Thẻ Vị Táo <i class="ph ph-arrow-right" aria-hidden="true"></i></a>
+    <a class="btn btn-primary btn-block" href="#doc-sach" data-track="cta_open_book" data-track-from="menu">Mở cuốn sách</a>
+  </div>
+
+  <div class="offline-bar" id="offline-bar" role="status" hidden>
+    Đang ngoại tuyến. Thẻ và dấu trạm vẫn được lưu trên máy, sẽ tự đồng bộ khi có mạng.
+  </div>
+
+  <main id="top">
+    <!-- =================================================================
+         S01 · HERO (cá chép + đèn trời, three.js)
+         ================================================================= -->
+    <section class="hero theme-dark" id="hero" aria-labelledby="hero-title">
+      <div id="hero-stage" aria-hidden="true"></div>
+      <div class="container">
+        <div class="hero-content">
+          <p class="eyebrow" data-hero-fade>Đêm 23 tháng Chạp</p>
+          <!-- PDF: headline gốc bị cắt ("Bếp Đỏ Thời Ng… Người Lính, Những Lửa T…"). Tạm dùng câu dưới, chờ nhóm chốt -->
+          <h1 id="hero-title">
+            <span class="line"><span class="word">Bếp</span> <span class="word">đỏ</span> <span class="word">giữ</span> <span class="word">lửa,</span></span>
+            <span class="line"><span class="word"><em>nếp</em></span> <span class="word"><em>nhà</em></span> <span class="word"><em>đoàn</em></span> <span class="word"><em>viên</em></span></span>
+          </h1>
+          <p class="hero-sub" data-hero-fade>Trải nghiệm sâu sắc từ những vật dụng và hình ảnh gắn kết với ngày 23 tháng Chạp.</p>
+          <div class="hero-ctas" data-hero-fade>
+            <a class="btn btn-primary" href="#doc-sach" data-track="cta_open_book" data-track-from="hero">
+              <i class="ph ph-book-open-text" aria-hidden="true"></i> Mở cuốn sách
+            </a>
+            <a class="btn btn-ghost" href="#tram-trai-nghiem" data-track="cta_passport" data-track-from="hero">Lấy thẻ thông hành</a>
+          </div>
+        </div>
+      </div>
+      <p class="hero-hint" aria-hidden="true">Rê chuột để đổi góc nhìn</p>
+    </section>
+
+    <!-- =================================================================
+         S02 · INTERACTIVE STORYBOOK HUB (4 chương + mini-game + huy hiệu)
+         ================================================================= -->
+    <section class="section" id="doc-sach" aria-labelledby="book-title">
+      <div class="container">
+        <div class="section-head reveal">
+          <h2 id="book-title">Cuốn sách bốn chương</h2>
+          <p>Mỗi chương là một câu chuyện ngắn về gian bếp ngày Tết. Đọc xong, chơi một thử thách nhỏ để mở huy hiệu.</p>
+        </div>
+
+        <div class="chapter-tabs reveal" role="tablist" aria-label="Các chương" id="chapter-tabs">
+          <span class="tab-indicator" aria-hidden="true"></span>
+        </div>
+
+        <article class="book card reveal" id="book" aria-live="polite">
+          <div class="leaf" aria-hidden="true"></div>
+          <div class="book-page page-art" id="page-art"></div>
+          <div class="book-page page-text" id="page-text"></div>
+        </article>
+
+        <!-- S03 · Tổng kết huy hiệu + CTA đến sự kiện -->
+        <div class="summary" id="tong-ket">
+          <div>
+            <h3 class="sr-only">Huy hiệu của bạn</h3>
+            <div class="badges" id="badges"></div>
+          </div>
+          <aside class="card event-card reveal" aria-labelledby="event-title">
+            <h3 id="event-title" data-summary-title>Gom đủ bốn huy hiệu, rồi gặp nhau ở sự kiện</h3>
+            <p data-summary-text>Bốn trạm thực tế đang chờ bạn đóng dấu và nhận quà.</p>
+            <dl class="event-meta">
+              <div><i class="ph ph-calendar-blank" aria-hidden="true"></i><span><dt>Ngày giờ</dt><dd><span class="soon">Sắp công bố</span></dd></span></div>
+              <div><i class="ph ph-map-pin" aria-hidden="true"></i><span><dt>Địa điểm</dt><dd><span class="soon">Sắp công bố</span></dd></span></div>
+            </dl>
+            <a class="btn btn-primary btn-block" href="#tram-trai-nghiem" data-track="cta_passport" data-track-from="summary">Lấy thẻ thông hành</a>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================
+         S04–S06 · CỔNG CHECK-IN O2O: đăng ký, passport 4 trạm, check-out quà
+         ================================================================= -->
+    <section class="section" id="tram-trai-nghiem" aria-labelledby="passport-title">
+      <div class="container">
+        <div class="section-head reveal">
+          <!-- PDF: tên "Tâm Thế Thông Hành Hảo Quán" cần xác nhận -->
+          <h2 id="passport-title">Thẻ thông hành bốn trạm</h2>
+          <p>Một thẻ số cho buổi sự kiện. Mỗi trạm đóng một dấu, đủ bốn dấu thì nhận quà.</p>
+        </div>
+
+        <ol class="flow reveal" aria-label="Cách tham gia">
+          <li class="flow-item"><span class="ico"><i class="ph ph-identification-card" aria-hidden="true"></i></span><span><strong>Nhập tên</strong><span>Nhận thẻ và mã QR riêng</span></span></li>
+          <li class="flow-line" aria-hidden="true"></li>
+          <li class="flow-item"><span class="ico"><i class="ph ph-qr-code" aria-hidden="true"></i></span><span><strong>Quét mã tại trạm</strong><span>Mỗi trạm một dấu</span></span></li>
+          <li class="flow-line" aria-hidden="true"></li>
+          <li class="flow-item"><span class="ico"><i class="ph ph-gift" aria-hidden="true"></i></span><span><strong>Nhận quà</strong><span>Đủ 4/4 dấu tại bàn check-out</span></span></li>
+        </ol>
+
+        <div class="passport-grid">
+          <!-- S04 · Đăng ký / consent / Virtual ID -->
+          <div class="card form-card reveal" id="register">
+            <h3>Tạo thẻ của bạn</h3>
+            <p class="lead">Chỉ cần một cái tên để vào trạm. Email là tùy chọn, dùng để gửi thông tin quà.</p>
+
+            <form class="form" id="form-register" novalidate>
+              <div class="error-summary" id="error-summary" role="alert" tabindex="-1" hidden>
+                <h4>Còn một chút nữa thôi</h4>
+                <div id="error-summary-list"></div>
+              </div>
+
+              <div class="field">
+                <label for="f-nickname">Tên hoặc nickname</label>
+                <input class="input" id="f-nickname" name="nickname" type="text" autocomplete="nickname" maxlength="24" required aria-describedby="f-nickname-help f-nickname-err" placeholder="Ví dụ: Bé Na, Minh Khôi">
+                <p class="help" id="f-nickname-help">Tên này sẽ in trên thẻ và thẻ Vị Táo của bạn.</p>
+                <p class="error-text" id="f-nickname-err" aria-live="polite"></p>
+              </div>
+
+              <div class="field">
+                <label for="f-email">Email <span class="opt">(không bắt buộc)</span></label>
+                <input class="input" id="f-email" name="email" type="email" autocomplete="email" inputmode="email" aria-describedby="f-email-err" placeholder="ban@email.com">
+                <p class="error-text" id="f-email-err" aria-live="polite"></p>
+              </div>
+
+              <label class="check" for="f-consent">
+                <input id="f-consent" name="consent" type="checkbox">
+                <span>Tôi đồng ý để Chuyện Nhà Táo lưu email nhằm gửi thông tin nhận quà và lời mời tham gia thẻ Vị Táo. <a href="#du-lieu">Xem chính sách dữ liệu</a>.</span>
+              </label>
+
+              <button class="btn btn-primary btn-block" type="submit" id="btn-register">
+                <span class="btn-label">Tạo thẻ thông hành</span>
+              </button>
+
+              <div class="form-foot">
+                <span>Đã có thẻ trên máy khác?</span>
+                <button class="linklike" type="button" id="btn-restore">Nhập lại mã thẻ</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- S05 · Passport 4 trạm + S06 Check-out -->
+          <div>
+            <div id="ticket-slot"></div>
+            <div class="checkout" id="checkout" hidden aria-live="polite"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================
+         S07–S08 · UGC CHALLENGE "YEAR IN VALUES"
+         ================================================================= -->
+    <section class="section" id="the-vi-tao" aria-labelledby="ugc-title">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="tag-phase"><i class="ph ph-sparkle" aria-hidden="true"></i> Year in Values</span>
+          <h2 id="ugc-title">Bạn là vị Táo nào?</h2>
+          <p>Bốn câu hỏi tình huống, mỗi câu ứng với một giá trị. Trả lời xong, bạn có một tấm thẻ để lưu và chia sẻ.</p>
+        </div>
+
+        <div class="ugc-grid">
+          <div>
+            <div class="card quiz-card reveal" id="quiz" aria-live="polite"></div>
+
+            <div class="card customize reveal">
+              <h3>Tùy chỉnh thẻ</h3>
+              <label class="upload" for="ugc-photo">
+                <i class="ph ph-image-square" aria-hidden="true"></i>
+                <span><strong>Thêm ảnh của bạn</strong><span id="ugc-photo-status">JPG hoặc PNG, ảnh lớn sẽ được tự nén. Có thể bỏ qua.</span></span>
+              </label>
+              <input class="sr-only" type="file" id="ugc-photo" accept="image/*">
+              <div>
+                <p class="help" style="margin-bottom:8px" id="ratio-label">Khổ ảnh</p>
+                <div class="seg" role="group" aria-labelledby="ratio-label" id="ratio-seg">
+                  <button type="button" data-ratio="1:1" aria-pressed="true">Vuông 1:1</button>
+                  <button type="button" data-ratio="9:16" aria-pressed="false">Story 9:16</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <aside class="card ugc-preview reveal" aria-labelledby="result-title">
+            <div>
+              <h3 class="result-title" id="result-title">Thẻ Vị Táo của bạn</h3>
+              <p class="result-desc" id="result-desc">Trả lời bốn câu hỏi để xem danh hiệu.</p>
+            </div>
+            <div class="canvas-wrap"><canvas id="ugc-canvas" width="1080" height="1080" aria-label="Xem trước thẻ Vị Táo"></canvas></div>
+            <div class="dist" id="dist" aria-label="Phân bố bốn giá trị"></div>
+            <div class="share-actions">
+              <button class="btn btn-primary" type="button" id="btn-download"><i class="ph ph-download-simple" aria-hidden="true"></i> Tải thẻ về máy</button>
+              <button class="btn btn-ghost" type="button" id="btn-share-fb"><i class="ph ph-facebook-logo" aria-hidden="true"></i> Facebook</button>
+              <button class="btn btn-ghost" type="button" id="btn-share-tt"><i class="ph ph-tiktok-logo" aria-hidden="true"></i> TikTok</button>
+            </div>
+            <div class="captions" id="captions"></div>
+            <p class="rules">Thể lệ tóm tắt: đăng thẻ ở chế độ công khai, kèm #ChuyenNhaTao #YearInValues. <span class="pending">Thể lệ đầy đủ đang được chốt (mục 2.4).</span></p>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================
+         S09 · DỮ LIỆU CÁ NHÂN, CONSENT & HỖ TRỢ
+         ================================================================= -->
+    <section class="section" id="du-lieu" aria-labelledby="data-title">
+      <div class="container data-grid">
+        <div class="section-head reveal" style="margin-bottom:0">
+          <h2 id="data-title">Dữ liệu của bạn</h2>
+          <p>Chúng tôi chỉ hỏi những gì cần để tạo thẻ và trao quà. Bạn có thể yêu cầu xóa bất cứ lúc nào.</p>
+        </div>
+        <div class="faq reveal">
+          <details open>
+            <summary>Chúng tôi thu thập gì? <i class="ph ph-plus" aria-hidden="true"></i></summary>
+            <div class="faq-body">Tên hoặc nickname, email (nếu bạn đồng ý), ảnh bạn tự tải lên khi tạo thẻ Vị Táo, lời nguyện ở chương 4 và tiến độ đóng dấu. Ảnh chỉ được xử lý trên máy của bạn, không gửi lên máy chủ.</div>
+          </details>
+          <details>
+            <summary>Dùng để làm gì? <i class="ph ph-plus" aria-hidden="true"></i></summary>
+            <div class="faq-body">Tạo thẻ thông hành và mã QR, xác nhận quà tại sự kiện, mời bạn tham gia thẻ Vị Táo (chỉ khi bạn đồng ý), và thống kê nội bộ không gắn tên.</div>
+          </details>
+          <details>
+            <summary>Lưu bao lâu, ai xem được? <i class="ph ph-plus" aria-hidden="true"></i></summary>
+            <div class="faq-body">Nhân sự tại trạm chỉ thấy tên và tiến độ dấu, không thấy email. <span class="pending">Thời gian lưu trữ, nơi lưu và độ tuổi tối thiểu: nhóm đang chốt.</span></div>
+          </details>
+          <details>
+            <summary>Tôi muốn xóa dữ liệu <i class="ph ph-plus" aria-hidden="true"></i></summary>
+            <div class="faq-body">Gửi mã thẻ của bạn tới <span class="pending">[email liên hệ, nhóm bổ sung]</span>. Dữ liệu trên máy này có thể xóa ngay: <button class="linklike" type="button" id="btn-clear-local">Xóa dữ liệu trên máy</button></div>
+          </details>
+          <details>
+            <summary>Từ chối đồng ý thì sao? <i class="ph ph-plus" aria-hidden="true"></i></summary>
+            <div class="faq-body">Bạn vẫn tham gia đủ bốn trạm và nhận quà bằng nickname. Chúng tôi chỉ không lưu email của bạn.</div>
+          </details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <a class="brand" href="#top"><span class="brand-seal" aria-hidden="true">Táo</span><span class="brand-name">Chuyện Nhà Táo</span></a>
+          <p class="help" style="margin-top:12px;max-width:42ch">Dự án lan tỏa giá trị văn hóa ngày 23 tháng Chạp qua trải nghiệm trực tuyến và tại sự kiện.</p>
+        </div>
+        <div>
+          <h4>Trải nghiệm</h4>
+          <ul>
+            <li><a href="#doc-sach">Đọc sách</a></li>
+            <li><a href="#tram-trai-nghiem">Trạm trải nghiệm</a></li>
+            <li><a href="#the-vi-tao">Thẻ Vị Táo</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Hỗ trợ</h4>
+          <ul>
+            <li><a href="#du-lieu">Chính sách dữ liệu</a></li>
+            <li><a href="#du-lieu">Yêu cầu xóa dữ liệu</a></li>
+          </ul>
+        </div>
+      </div>
+      <p class="footer-note">© 2026 Chuyện Nhà Táo. #ChuyenNhaTao #YearInValues</p>
+    </div>
+  </footer>
+
+  <div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
+
+  <!-- Thư viện: three r147 (đủ examples/js), GSAP 3.12, QR code -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/utils/BufferGeometryUtils.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/STLLoader.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+  <script src="ca-chep.js" defer></script>
+  <script src="app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+# Tài liệu nội bộ của nhóm (không công khai)
+*.pdf
+
+# Bản đóng gói
+*.zip
+
+# Cấu hình công cụ / skill cục bộ
+.claude/
+.agents/
+
+# Hệ điều hành, editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Node (nếu sau này có dependency)
+node_modules/
+
+# File khác trong thư mục, không thuộc landing page
+DateServiceAPI.rar
+Huong_dan_*.docx

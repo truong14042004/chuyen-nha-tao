@@ -1,0 +1,251 @@
+flowchart TD
+  %% Chuyện Nhà Táo · User flow landing page (đối chiếu PDF 2.3, mục A: A1–A7)
+  %% Nút màu vàng (class added) = bổ sung / sửa so với bản nháp của nhóm
+
+  subgraph ENTRY["Điểm vào"]
+    E1["Link teaser, bài đăng (có UTM)"]
+    E2["QR tại bàn check-in sự kiện"]
+    E3["QR tại trạm"]
+    E4["Email, QR mời làm thẻ Vị Táo"]
+    E5["Quay lại trang"]
+    R1{"Còn dữ liệu trên máy?"}
+  end
+
+  subgraph HOME["S01 · Trang chủ và menu"]
+    S01["S01 · Hero"]
+    S01B["S01b · Menu mở"]
+  end
+
+  subgraph BOOK["S02 · Sách 4 chương"]
+    S021["S02.1 · Chương N: đọc, nghe đọc"]
+    S022["S02.2 · Mini-game chương N"]
+    G1{"Kết quả"}
+    S022C["S02.2c · Chưa đúng"]
+    F3{"Sai từ 3 lần?"}
+    S023["S02.3 · Mở huy hiệu"]
+  end
+
+  subgraph SUM["S03 · Tổng kết"]
+    S03["S03 · Tổng kết 4 huy hiệu"]
+    EV{"Đã có ngày, địa điểm?"}
+    S03A["S03a · Hiện Sắp công bố"]
+    MAP["Ứng dụng bản đồ"]
+  end
+
+  subgraph REG["S04 · Đăng ký và Virtual ID"]
+    S041["S04.1 · Form: nickname, email tùy chọn, consent"]
+    V1{"Hợp lệ?"}
+    S042["S04.2 · Lỗi dưới ô và khối tóm tắt lỗi"]
+    CS{"Đồng ý lưu email?"}
+    NET{"Có mạng?"}
+    DUP{"Trùng nickname?"}
+    S043["S04.3 · Tạo ID trên máy, đồng bộ sau"]
+    S044["S04.4 · Nhập lại mã thẻ"]
+  end
+
+  subgraph PASS["S05 · Thẻ thông hành và 4 trạm"]
+    S051["S05.1 · Thẻ: Virtual ID và QR"]
+    S052["S05.2 · Hộ chiếu 4 ô dấu"]
+    WAY{"Cách đóng dấu"}
+    S053["S05.3 · Nhập mã trạm 6 ký tự"]
+    CHK{"Kiểm tra mã trạm"}
+    S054["S05.4 · Mã sai, nhầm trạm"]
+    S055["S05.5 · Trạm này đã đóng dấu"]
+    S056["S05.6 · Đóng dấu thành công"]
+    S057["S05.7 · Mất mạng: lưu hàng đợi"]
+    CNT{"Đủ 4/4 dấu?"}
+  end
+
+  subgraph STAFF["S10 · Điều phối nhân sự"]
+    S101["S10.1 · Đăng nhập PIN"]
+    S102["S10.2 · Quét, nhập Virtual ID"]
+    FND{"Tìm thấy ID?"}
+    S103["S10.3 · Không tìm thấy, ID trùng: nhập tay"]
+    S104["S10.4 · Xác nhận dấu, quà (ẩn email)"]
+  end
+
+  subgraph DONE["S06 · Check-out và quà"]
+    S061["S06.1 · Hoàn thành 4/4"]
+    S062["S06.2 · Mã nhận quà dùng một lần"]
+    CL{"Mã đã dùng?"}
+    S063["S06.3 · Đã nhận quà"]
+    S064["S06.4 · Báo mã đã dùng, liên hệ nhân sự"]
+    OPT{"Muốn nhận bí mật? (opt-in)"}
+    LATER["S06.5 · Kết thúc, nút Tạo thẻ sau"]
+  end
+
+  subgraph UGC["S07 · Thẻ Vị Táo"]
+    S070["S07.0 · Mở đầu"]
+    S071["S07.1 · Câu 1"]
+    S072["S07.2 · Câu 2"]
+    S073["S07.3 · Câu 3"]
+    S074["S07.4 · Câu 4"]
+    S075["S07.5 · Kết quả: danh hiệu và % 4 giá trị"]
+    S076["S07.6 · Chọn ảnh (tùy chọn)"]
+    PH{"Ảnh dùng được?"}
+    S077["S07.7 · Ảnh quá nặng, sai định dạng"]
+    S078["S07.8 · Chọn khổ 1:1 hoặc 9:16, xem trước"]
+    DL["S07.9 · Tải ảnh về máy"]
+  end
+
+  subgraph SHARE["S08 · Chia sẻ"]
+    S081["S08.1 · Chia sẻ: 3 caption mẫu và hashtag"]
+    S082["S08.2 · Mở Facebook, TikTok"]
+    S083["S08.3 · Đã sao chép caption"]
+    S084["S08.4 · Không mở được ứng dụng"]
+    S085["S08.5 · Thể lệ: bài phải công khai"]
+  end
+
+  subgraph DATA["S09 · Dữ liệu của tôi và chính sách"]
+    S091["S09.1 · Chính sách dữ liệu"]
+    S092["S09.2 · Xác nhận xóa"]
+    S093["S09.3 · Đã xóa dữ liệu"]
+  end
+
+  subgraph ERR["S09 · Lỗi chung, mọi màn"]
+    ANY["Bất kỳ màn nào"]
+    ER1["Mất mạng: thanh báo, giữ tiến độ"]
+    ER2["404, 500: thử lại sau"]
+    ER3["Từ chối quyền camera, ảnh"]
+    ER4["Hết hạn"]
+    BACK["Thử lại hoặc quay lại màn trước"]
+  end
+
+  %% ---------- Điểm vào
+  E1 --> S01
+  E2 -->|"A3: vào thẳng đăng ký"| S041
+  E3 -->|"A4: vào thẳng hộ chiếu"| S052
+  E4 -->|"A6: không cần dự sự kiện"| S070
+  E5 --> R1
+  R1 -->|"Có: mở đúng chương, thẻ"| S01
+  R1 -->|"Không: đã xóa dữ liệu trình duyệt"| S044
+
+  %% ---------- S01
+  S01 -->|"Mở menu"| S01B
+  S01B -->|"Đóng"| S01
+  S01 -->|"Mở cuốn sách"| S021
+  S01 -->|"Lấy thẻ thông hành"| S041
+  S01B -->|"Đọc sách"| S021
+  S01B -->|"Trạm trải nghiệm"| S041
+  S01B -->|"Thẻ Vị Táo"| S070
+  S01 -->|"Chính sách dữ liệu (footer)"| S091
+
+  %% ---------- S02
+  S021 -->|"Đổi chương bằng tab"| S021
+  S021 -->|"Làm thử thách"| S022
+  S022 -->|"C1 quiz, C2 ghép câu, C3 ghép cặp"| G1
+  S022 -->|"C4 thả đèn trời: luôn hoàn thành"| S023
+  G1 -->|"Đúng"| S023
+  G1 -->|"Sai"| S022C
+  S022C --> F3
+  F3 -->|"Chưa: thử lại"| S022
+  F3 -->|"Rồi: Bỏ qua"| S023
+  S023 -->|"Còn chương chưa xong"| S021
+  S023 -->|"Đủ 4 huy hiệu"| S03
+
+  %% ---------- S03
+  S03 --> EV
+  EV -->|"Chưa"| S03A
+  EV -->|"Có: Chỉ đường"| MAP
+  S03 -->|"Lấy thẻ thông hành"| S041
+
+  %% ---------- S04
+  S041 -->|"Tạo thẻ thông hành"| V1
+  S041 -->|"Xem chính sách"| S091
+  V1 -->|"Không"| S042
+  S042 -->|"Sửa thông tin"| S041
+  V1 -->|"Có"| CS
+  CS -->|"Có: lưu email"| NET
+  CS -->|"Không: chỉ dùng nickname"| NET
+  NET -->|"Mất mạng"| S043
+  NET -->|"Có mạng"| DUP
+  DUP -->|"Trùng: gợi ý đổi tên"| S041
+  DUP -->|"Không"| S051
+  S043 --> S051
+  S044 -->|"Tìm thấy"| S052
+  S044 -->|"Không tìm thấy: tạo thẻ mới"| S041
+
+  %% ---------- S05
+  S051 -->|"Xem 4 trạm"| S052
+  S052 --> WAY
+  WAY -->|"Nhân sự quét QR cá nhân"| S102
+  WAY -->|"QR mờ: tự nhập mã"| S053
+  S053 --> CHK
+  CHK -->|"Sai"| S054
+  CHK -->|"Trùng trạm"| S055
+  CHK -->|"Mất mạng"| S057
+  CHK -->|"Đúng"| S056
+  S054 -->|"Thử lại"| S053
+  S055 -->|"Về hộ chiếu"| S052
+  S057 -->|"Có mạng: đồng bộ"| S056
+  S056 --> CNT
+  CNT -->|"Chưa"| S052
+  CNT -->|"Đủ"| S061
+
+  %% ---------- S10
+  S101 --> S102
+  S102 --> FND
+  FND -->|"Không, trùng"| S103
+  S103 -->|"Thử lại"| S102
+  FND -->|"Có"| S104
+  S104 -->|"Xác nhận dấu"| S056
+
+  %% ---------- S06
+  S061 --> S062
+  S062 -->|"Đưa mã cho nhân sự"| CL
+  CL -->|"Chưa: nhân sự xác nhận"| S104
+  S104 -->|"Xác nhận trao quà"| S063
+  CL -->|"Rồi"| S064
+  S063 --> OPT
+  OPT -->|"Có"| S070
+  OPT -->|"Không"| LATER
+  LATER -.->|"Tạo thẻ sau"| S070
+
+  %% ---------- S07
+  S070 -->|"Bắt đầu"| S071
+  S071 -->|"Tiếp"| S072
+  S072 -->|"Tiếp"| S073
+  S073 -->|"Tiếp"| S074
+  S074 -->|"Xem kết quả"| S075
+  S072 -.->|"Câu trước"| S071
+  S075 -->|"Làm lại"| S070
+  S075 -->|"Thêm ảnh"| S076
+  S075 -->|"Bỏ qua ảnh"| S078
+  S076 --> PH
+  PH -->|"Quá nặng, sai định dạng"| S077
+  S077 -->|"Chọn ảnh khác"| S076
+  PH -->|"Từ chối quyền: dùng khung không ảnh"| S078
+  PH -->|"Được"| S078
+  S078 -->|"Tải về"| DL
+  S078 -->|"Chia sẻ"| S081
+
+  %% ---------- S08
+  S081 -->|"Sao chép caption"| S083
+  S081 -->|"Mở ứng dụng"| S082
+  S081 -->|"Xem thể lệ"| S085
+  S082 -->|"Không mở được"| S084
+  S084 -->|"Tải ảnh và dán caption"| DL
+
+  %% ---------- S09 dữ liệu
+  S091 -->|"Xóa dữ liệu trên máy"| S092
+  S092 -->|"Hủy"| S091
+  S092 -->|"Xóa"| S093
+  S093 -->|"Về trang chủ"| S01
+
+  %% ---------- S09 lỗi chung
+  ANY --> ER1
+  ANY --> ER2
+  ANY --> ER3
+  ANY --> ER4
+  ER1 --> BACK
+  ER2 --> BACK
+  ER3 --> BACK
+  ER4 --> BACK
+
+  classDef added fill:#FFF3C4,stroke:#D9A400,color:#3A2A00
+  classDef okstate fill:#E6F4EA,stroke:#2E7D4F,color:#14381F
+  classDef errstate fill:#FDECEC,stroke:#C62828,color:#4A0E0E
+
+  class E2,E3,E4,E5,R1,S03A,EV,CS,NET,DUP,S043,S044,WAY,S055,S057,S101,S102,FND,S104,S062,CL,OPT,LATER,S076,PH,S078,DL,S085,ER1,ER2,ER3,ER4 added
+  class S023,S056,S061,S063,S083,S093 okstate
+  class S022C,S042,S054,S064,S084,S077,S103 errstate
