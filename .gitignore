@@ -21,3 +21,5 @@ node_modules/
 # File khác trong thư mục, không thuộc landing page
 DateServiceAPI.rar
 Huong_dan_*.docx
+
+.vercel

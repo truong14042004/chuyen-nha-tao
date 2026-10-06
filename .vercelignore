@@ -1,0 +1,12 @@
+# Không đưa lên Vercel (giống .gitignore)
+*.pdf
+*.zip
+*.rar
+*.docx
+.claude/
+.agents/
+.vscode/
+.idea/
+node_modules/
+docs/
+chay-du-an.bat
