@@ -275,12 +275,25 @@
   const pageHTML = [];
   const folio = (n) => `<span class="pg-folio" aria-hidden="true">${n}</span>`;
   pageHTML[P.cover] = `
-    <div class="pg-cover-frame">
-      <span class="pg-seal" aria-hidden="true">Táo</span>
-      <p class="pg-cover-kicker">Đêm 23 tháng Chạp</p>
-      <h3 class="pg-cover-title">Chuyện<br>Nhà Táo</h3>
-      <p class="pg-cover-sub">Bốn chương về gian bếp ngày Tết</p>
-      <button class="pg-cover-open" type="button" data-goto="${P.intro}">Mở sách <i class="ph ph-arrow-right" aria-hidden="true"></i></button>
+    <div class="lp-cover">
+      <p class="lp-box">Bếp-Lửa Tùng-Thư</p>
+      <div class="lp-titles">
+        <h3 class="lp-title">Chuyện<br>Nhà - Táo</h3>
+        <p class="lp-red">Đêm Hai-Mươi-Ba Tháng Chạp</p>
+        <p class="lp-small">Bốn chương</p>
+      </div>
+      <div class="lp-credit">
+        <p class="lp-tiny">Kể - chuyện</p>
+        <p>Bếp - Đỏ &nbsp;Giữ - Lửa</p>
+        <p class="lp-plain">Nếp - nhà &nbsp;đoàn - viên</p>
+      </div>
+      <button class="lp-open" type="button" data-goto="${P.intro}">Mở sách <i class="ph ph-arrow-right" aria-hidden="true"></i></button>
+      <div class="lp-pub">
+        <p>Nhà Bếp-Lửa</p>
+        <p class="lp-big">Hội Gian-Bếp Ngày-Tết</p>
+        <p class="lp-tiny">Xuất - bản</p>
+      </div>
+      <p class="lp-rule"><span>Tập số 1</span><span>Tháng Chạp</span></p>
     </div>`;
   pageHTML[P.intro] = `
     <div class="pg-body">
@@ -339,11 +352,14 @@
       <a class="btn btn-primary btn-block" href="#tram-trai-nghiem" data-track="cta_passport" data-track-from="summary">Lấy thẻ thông hành</a>
     </div>${folio(P.event)}`;
   pageHTML[P.back] = `
-    <div class="pg-cover-frame pg-back">
-      <span class="pg-seal" aria-hidden="true">Táo</span>
-      <p class="pg-cover-sub">Bếp đỏ giữ lửa, nếp nhà đoàn viên</p>
-      <p class="pg-cover-kicker">#ChuyenNhaTao</p>
-      <button class="pg-cover-open" type="button" data-goto="${P.cover}"><i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i> Đọc lại từ đầu</button>
+    <div class="lp-cover lp-back">
+      <p class="lp-box">#Chuyện-Nhà-Táo</p>
+      <div class="lp-titles">
+        <p class="lp-red">Bếp - đỏ giữ - lửa</p>
+        <p class="lp-small">Nếp - nhà đoàn - viên</p>
+      </div>
+      <button class="lp-open" type="button" data-goto="${P.cover}"><i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i> Đọc lại từ đầu</button>
+      <p class="lp-rule"><span>Giá : một nụ cười</span><span>In lần thứ nhất</span></p>
     </div>`;
 
   const flipbookEl = $('#flipbook');
