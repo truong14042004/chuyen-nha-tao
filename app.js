@@ -615,7 +615,7 @@
     if (tale.audio) { tale.audio.pause(); tale.audio = null; }
     if (tale.playing && 'speechSynthesis' in window) speechSynthesis.cancel();
     const obj = tale.i !== null && $(`[data-tale="${tale.i}"]`);
-    if (obj) obj.classList.remove('is-playing');
+    if (obj) { obj.classList.remove('is-playing'); obj.closest('.listen').classList.remove('is-active'); }
     tale.playing = false; tale.i = null;
   }
 
@@ -628,6 +628,8 @@
 
   function finishTale(i, mode) {
     stopTale();
+    const box = $(`[data-tale="${i}"]`);
+    if (box) box.closest('.listen').classList.add('is-active');
     CHAPTERS[i].listen.lines.forEach((_, k) => showLine(i, k));
     const take = $('#take-' + i);
     if (take) {
@@ -645,6 +647,7 @@
     stopVoice();
     tale.i = i; tale.playing = true;
     $(`[data-tale="${i}"]`).classList.add('is-playing');
+    $(`[data-tale="${i}"]`).closest('.listen').classList.add('is-active'); // nhường chỗ cho lời kể
     $$(`#lines-${i} li`).forEach((li) => li.classList.remove('is-on'));
     $('#take-' + i).classList.remove('is-on');
     track('listen_play', { chapter: i + 1 });
