@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Chuyện Nhà Táo | Đêm 23 tháng Chạp</title>
-  <meta name="description" content="Trải nghiệm sâu sắc từ những vật dụng và hình ảnh gắn kết với ngày 23 tháng Chạp. Đọc sách 4 chương, nhận thẻ thông hành 4 trạm và khám phá vị Táo của bạn.">
+  <meta name="description" content="Trải nghiệm sâu sắc từ những vật dụng và hình ảnh gắn kết với ngày 23 tháng Chạp. Đọc sách 4 chương, nhận thẻ thông hành 4 trạm và viết lá sớ gửi Táo.">
   <meta name="theme-color" content="#fff8f0">
 
   <!-- OG image / preview khi share (Checklist kỹ thuật). TODO: thay og-image.jpg 1200x630 thật -->
   <meta property="og:type" content="website">
   <meta property="og:title" content="Chuyện Nhà Táo | Đêm 23 tháng Chạp">
-  <meta property="og:description" content="Lật sách 4 chương, nhận thẻ thông hành 4 trạm, khám phá vị Táo của bạn. #ChuyenNhaTao">
+  <meta property="og:description" content="Lật sách 4 chương, nhận thẻ thông hành 4 trạm, viết lá sớ gửi Táo. #ChuyenNhaTao">
   <meta property="og:image" content="og-image.jpg">
   <meta name="twitter:card" content="summary_large_image">
 
@@ -43,8 +43,8 @@
       <nav class="nav-links" aria-label="Điều hướng chính">
         <a href="#doc-sach" data-nav>Đọc sách</a>
         <a href="#tram-trai-nghiem" data-nav>Trạm trải nghiệm</a>
-        <!-- PDF: "Tạo Thẻ Yêu Nghiệm" cần xác nhận lại tên. Tạm dùng "Thẻ Vị Táo" khớp thông điệp UGC -->
-        <a href="#the-vi-tao" data-nav>Thẻ Vị Táo</a>
+        <!-- Góp ý của cô: bỏ "Thẻ Vị Táo" (biến giá trị thành tính cách), thay bằng lá sớ ghi đủ 4 giá trị -->
+        <a href="#la-so" data-nav>Lá sớ gửi Táo</a>
       </nav>
 
       <div class="header-actions">
@@ -65,7 +65,7 @@
   <div class="mobile-menu" id="mobile-menu" aria-label="Menu">
     <a href="#doc-sach">Đọc sách <i class="ph ph-arrow-right" aria-hidden="true"></i></a>
     <a href="#tram-trai-nghiem">Trạm trải nghiệm <i class="ph ph-arrow-right" aria-hidden="true"></i></a>
-    <a href="#the-vi-tao">Thẻ Vị Táo <i class="ph ph-arrow-right" aria-hidden="true"></i></a>
+    <a href="#la-so">Lá sớ gửi Táo <i class="ph ph-arrow-right" aria-hidden="true"></i></a>
     <a class="btn btn-primary btn-block" href="#doc-sach" data-track="cta_open_book" data-track-from="menu">Mở cuốn sách</a>
   </div>
 
@@ -100,13 +100,13 @@
     </section>
 
     <!-- =================================================================
-         S02 · INTERACTIVE STORYBOOK HUB (4 chương + mini-game + huy hiệu)
+         S02 · INTERACTIVE STORYBOOK HUB (4 chương + lắng nghe + huy hiệu)
          ================================================================= -->
     <section class="section" id="doc-sach" aria-labelledby="book-title">
       <div class="container">
         <div class="section-head reveal">
           <h2 id="book-title">Cuốn sách bốn chương</h2>
-          <p>Lật từng trang để đọc câu chuyện gian bếp ngày Tết. Cuối mỗi chương có một thử thách nhỏ để mở huy hiệu.</p>
+          <p>Lật từng trang để đọc câu chuyện gian bếp ngày Tết. Cuối mỗi chương có một câu chuyện nhỏ để lắng nghe và mở huy hiệu.</p>
         </div>
 
         <div class="chapter-tabs reveal" role="tablist" aria-label="Các chương" id="chapter-tabs">
@@ -161,7 +161,7 @@
               <div class="field">
                 <label for="f-nickname">Tên hoặc nickname</label>
                 <input class="input" id="f-nickname" name="nickname" type="text" autocomplete="nickname" maxlength="24" required aria-describedby="f-nickname-help f-nickname-err" placeholder="Ví dụ: Bé Na, Minh Khôi">
-                <p class="help" id="f-nickname-help">Tên này sẽ in trên thẻ và thẻ Vị Táo của bạn.</p>
+                <p class="help" id="f-nickname-help">Tên này sẽ in trên hộ chiếu và lá sớ của bạn.</p>
                 <p class="error-text" id="f-nickname-err" aria-live="polite"></p>
               </div>
 
@@ -173,7 +173,7 @@
 
               <label class="check" for="f-consent">
                 <input id="f-consent" name="consent" type="checkbox">
-                <span>Tôi đồng ý để Chuyện Nhà Táo lưu email nhằm gửi thông tin nhận quà và lời mời tham gia thẻ Vị Táo. <a href="#du-lieu">Xem chính sách dữ liệu</a>.</span>
+                <span>Tôi đồng ý để Chuyện Nhà Táo lưu email nhằm gửi thông tin nhận quà và lời mời viết lá sớ gửi Táo. <a href="#du-lieu">Xem chính sách dữ liệu</a>.</span>
               </label>
 
               <button class="btn btn-primary btn-block" type="submit" id="btn-register">
@@ -197,52 +197,56 @@
     </section>
 
     <!-- =================================================================
-         S07–S08 · UGC CHALLENGE "YEAR IN VALUES"
+         S07–S08 · LÁ SỚ GỬI TÁO (UGC "Year in Values")
+         Góp ý của cô: không biến giá trị thành tính cách. Lá sớ ghi đủ cả 4 giá trị,
+         chỉ mở khi đã nghe đủ 4 chương và đóng đủ 4 dấu trạm.
          ================================================================= -->
-    <section class="section" id="the-vi-tao" aria-labelledby="ugc-title">
+    <section class="section" id="la-so" aria-labelledby="letter-title">
       <div class="container">
         <div class="section-head reveal">
-          <span class="tag-phase"><i class="ph ph-sparkle" aria-hidden="true"></i> Year in Values</span>
-          <h2 id="ugc-title">Bạn là vị Táo nào?</h2>
-          <p>Bốn câu hỏi tình huống, mỗi câu ứng với một giá trị. Trả lời xong, bạn có một tấm thẻ để lưu và chia sẻ.</p>
+          <span class="tag-phase"><i class="ph ph-scroll" aria-hidden="true"></i> Year in Values</span>
+          <h2 id="letter-title">Lá sớ gửi Táo</h2>
+          <p>Ngày 23 tháng Chạp, ông Táo mang lá sớ về trời kể chuyện một năm của mỗi nhà. Lá sớ của bạn ghi đủ bốn giá trị đã đi qua, kèm những khoảnh khắc ở sự kiện.</p>
         </div>
 
-        <div class="ugc-grid">
-          <div>
-            <div class="card quiz-card reveal" id="quiz" aria-live="polite"></div>
+        <div class="reveal" id="letter-root">
+          <!-- Chưa đủ điều kiện: danh sách việc còn thiếu -->
+          <div class="card letter-lock" id="letter-lock" aria-live="polite"></div>
 
-            <div class="card customize reveal">
-              <h3>Tùy chỉnh thẻ</h3>
-              <label class="upload" for="ugc-photo">
-                <i class="ph ph-image-square" aria-hidden="true"></i>
-                <span><strong>Thêm ảnh của bạn</strong><span id="ugc-photo-status">JPG hoặc PNG, ảnh lớn sẽ được tự nén. Có thể bỏ qua.</span></span>
-              </label>
-              <input class="sr-only" type="file" id="ugc-photo" accept="image/*">
-              <div>
-                <p class="help" style="margin-bottom:8px" id="ratio-label">Khổ ảnh</p>
-                <div class="seg" role="group" aria-labelledby="ratio-label" id="ratio-seg">
-                  <button type="button" data-ratio="1:1" aria-pressed="true">Vuông 1:1</button>
-                  <button type="button" data-ratio="9:16" aria-pressed="false">Story 9:16</button>
+          <!-- Đủ điều kiện: soạn lá sớ + ảnh khoảnh khắc + xem trước -->
+          <div class="ugc-grid" id="letter-open" hidden>
+            <div>
+              <div class="card letter-edit" id="letter-edit"></div>
+
+              <div class="card customize">
+                <h3>Khoảnh khắc ở sự kiện</h3>
+                <p class="help">Ảnh bạn chụp ở từng trạm (thêm được ngay trong hộ chiếu) và vài ảnh khác. Ảnh chỉ xử lý trên máy của bạn.</p>
+                <div class="moments" id="moments"></div>
+                <div>
+                  <p class="help" style="margin-bottom:8px" id="ratio-label">Khổ ảnh</p>
+                  <div class="seg" role="group" aria-labelledby="ratio-label" id="ratio-seg">
+                    <button type="button" data-ratio="1:1" aria-pressed="true">Vuông 1:1</button>
+                    <button type="button" data-ratio="9:16" aria-pressed="false">Story 9:16</button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <aside class="card ugc-preview reveal" aria-labelledby="result-title">
-            <div>
-              <h3 class="result-title" id="result-title">Thẻ Vị Táo của bạn</h3>
-              <p class="result-desc" id="result-desc">Trả lời bốn câu hỏi để xem danh hiệu.</p>
-            </div>
-            <div class="canvas-wrap"><canvas id="ugc-canvas" width="1080" height="1080" aria-label="Xem trước thẻ Vị Táo"></canvas></div>
-            <div class="dist" id="dist" aria-label="Phân bố bốn giá trị"></div>
-            <div class="share-actions">
-              <button class="btn btn-primary" type="button" id="btn-download"><i class="ph ph-download-simple" aria-hidden="true"></i> Tải thẻ về máy</button>
-              <button class="btn btn-ghost" type="button" id="btn-share-fb"><i class="ph ph-facebook-logo" aria-hidden="true"></i> Facebook</button>
-              <button class="btn btn-ghost" type="button" id="btn-share-tt"><i class="ph ph-tiktok-logo" aria-hidden="true"></i> TikTok</button>
-            </div>
-            <div class="captions" id="captions"></div>
-            <p class="rules">Thể lệ tóm tắt: đăng thẻ ở chế độ công khai, kèm #ChuyenNhaTao #YearInValues. <span class="pending">Thể lệ đầy đủ đang được chốt (mục 2.4).</span></p>
-          </aside>
+            <aside class="card ugc-preview" aria-labelledby="result-title">
+              <div>
+                <h3 class="result-title" id="result-title">Lá sớ của nhà bạn</h3>
+                <p class="result-desc" id="result-desc">Bốn giá trị, bốn lời gửi ông Táo.</p>
+              </div>
+              <div class="canvas-wrap"><canvas id="ugc-canvas" width="1080" height="1080" aria-label="Xem trước lá sớ gửi Táo"></canvas></div>
+              <div class="share-actions">
+                <button class="btn btn-primary" type="button" id="btn-download"><i class="ph ph-download-simple" aria-hidden="true"></i> Tải lá sớ về máy</button>
+                <button class="btn btn-ghost" type="button" id="btn-share-fb"><i class="ph ph-facebook-logo" aria-hidden="true"></i> Facebook</button>
+                <button class="btn btn-ghost" type="button" id="btn-share-tt"><i class="ph ph-tiktok-logo" aria-hidden="true"></i> TikTok</button>
+              </div>
+              <div class="captions" id="captions"></div>
+              <p class="rules">Thể lệ tóm tắt: đăng lá sớ ở chế độ công khai, kèm #ChuyenNhaTao #YearInValues. <span class="pending">Thể lệ đầy đủ đang được chốt (mục 2.4).</span></p>
+            </aside>
+          </div>
         </div>
       </div>
     </section>
@@ -259,11 +263,11 @@
         <div class="faq reveal">
           <details open>
             <summary>Chúng tôi thu thập gì? <i class="ph ph-plus" aria-hidden="true"></i></summary>
-            <div class="faq-body">Tên hoặc nickname, email (nếu bạn đồng ý), ảnh bạn tự tải lên khi tạo thẻ Vị Táo, lời nguyện ở chương 4 và tiến độ đóng dấu. Ảnh chỉ được xử lý trên máy của bạn, không gửi lên máy chủ.</div>
+            <div class="faq-body">Tên hoặc nickname, email (nếu bạn đồng ý), ảnh khoảnh khắc bạn tự tải lên ở các trạm, lời bạn viết trong lá sớ và tiến độ đóng dấu. Ảnh chỉ được xử lý trên máy của bạn, không gửi lên máy chủ.</div>
           </details>
           <details>
             <summary>Dùng để làm gì? <i class="ph ph-plus" aria-hidden="true"></i></summary>
-            <div class="faq-body">Tạo thẻ thông hành và mã QR, xác nhận quà tại sự kiện, mời bạn tham gia thẻ Vị Táo (chỉ khi bạn đồng ý), và thống kê nội bộ không gắn tên.</div>
+            <div class="faq-body">Tạo thẻ thông hành và mã QR, xác nhận quà tại sự kiện, mời bạn viết lá sớ gửi Táo (chỉ khi bạn đồng ý), và thống kê nội bộ không gắn tên.</div>
           </details>
           <details>
             <summary>Lưu bao lâu, ai xem được? <i class="ph ph-plus" aria-hidden="true"></i></summary>
@@ -294,7 +298,7 @@
           <ul>
             <li><a href="#doc-sach">Đọc sách</a></li>
             <li><a href="#tram-trai-nghiem">Trạm trải nghiệm</a></li>
-            <li><a href="#the-vi-tao">Thẻ Vị Táo</a></li>
+            <li><a href="#la-so">Lá sớ gửi Táo</a></li>
           </ul>
         </div>
         <div>
@@ -309,6 +313,10 @@
     </div>
   </footer>
 
+  <!-- Hộp thoại dùng chung: cảnh báo xoá, trùng tên, lấy lại thẻ (app.js: ask) -->
+  <dialog class="dlg" id="dlg" aria-labelledby="dlg-title"></dialog>
+  <!-- Chọn ảnh khoảnh khắc (dùng chung cho trang visa trong hộ chiếu và lá sớ) -->
+  <input class="sr-only" type="file" id="moment-input" accept="image/*" tabindex="-1" aria-hidden="true">
   <div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
 
   <!-- Thư viện: three r147 (đủ examples/js), GSAP 3.12, QR code -->

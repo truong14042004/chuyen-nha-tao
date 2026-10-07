@@ -68,6 +68,33 @@
   }
 
   /* ======================================================================
+   * Hộp thoại dùng chung (<dialog>): trả về Promise với value của nút được bấm.
+   * Esc hoặc nút đầu tiên khi nhấn Enter = huỷ, nên không bao giờ xoá nhầm.
+   * ==================================================================== */
+  const dlg = $('#dlg');
+  function ask({ title, html, tone = '', buttons }) {
+    return new Promise((resolve) => {
+      dlg.className = 'dlg' + (tone ? ' dlg-' + tone : '');
+      dlg.innerHTML = `<form method="dialog" class="dlg-box">
+        <h3 class="dlg-title" id="dlg-title">${title}</h3>
+        <div class="dlg-body">${html}</div>
+        <div class="dlg-actions">${buttons.map((b) => `<button class="btn ${b.cls || 'btn-ghost'}" value="${b.value}"${b.id ? ` id="${b.id}"` : ''}${b.disabled ? ' disabled' : ''}>${b.label}</button>`).join('')}</div>
+      </form>`;
+      dlg.returnValue = '';
+      // Nhận kết quả từ submit của form (đồng bộ, có e.submitter); Esc đi qua 'cancel'; 'close' để dự phòng
+      let settled = false;
+      const done = (v) => { if (!settled) { settled = true; resolve(v || ''); } };
+      $('form', dlg).addEventListener('submit', (e) => done(e.submitter ? e.submitter.value : dlg.returnValue));
+      dlg.addEventListener('cancel', () => done(''), { once: true });
+      dlg.addEventListener('close', () => done(dlg.returnValue), { once: true });
+      dlg.showModal();
+      if (hasGsap && !reduceMotion) gsap.from('.dlg-box', { y: 18, opacity: 0, duration: 0.3, ease: 'power2.out' });
+    });
+  }
+  // Bỏ dấu, viết hoa: so tên trùng và chữ xác nhận không phụ thuộc cách gõ dấu
+  const plain = (v) => String(v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/gi, 'd').trim().toUpperCase().replace(/\s+/g, ' ');
+
+  /* ======================================================================
    * Âm thanh: tiếng lửa bếp lách tách + lật trang (Web Audio, không tự phát)
    * ==================================================================== */
   const sound = {
@@ -163,7 +190,10 @@
    * ==================================================================== */
   const offlineBar = $('#offline-bar');
   const syncOnline = () => { offlineBar.hidden = navigator.onLine; };
-  window.addEventListener('online', () => { syncOnline(); toast('Đã có mạng lại. Thẻ của bạn đã được đồng bộ.', 'ok', 'wifi-high'); });
+  window.addEventListener('online', () => {
+    syncOnline();
+    if (pass && !pass.synced) syncPass(); else toast('Đã có mạng lại.', 'ok', 'wifi-high');
+  });
   window.addEventListener('offline', syncOnline);
   syncOnline();
 
@@ -181,14 +211,15 @@
       seed: 'Một năm qua, điều gì khiến bạn muốn làm lại tốt hơn?',
       story: 'Gian bếp là nơi kín đáo nhất trong nhà, nhưng cũng là nơi thấy rõ lòng người nhất. Bát cơm dẻo hay khê, bếp lửa đượm hay nguội, đều kể lại sự chăm chút của từng người. Ngày 23 tháng Chạp, ông Táo cưỡi cá chép về trời. Tự soi xét không phải để tự trách, mà để nhẹ lòng buông điều chưa tốt, gieo một hạt thiện cho năm mới.',
       badge: { name: 'Huy hiệu Hướng Thiện', desc: 'Dám nhìn thật lòng mình để sống tốt hơn.' },
-      game: {
-        type: 'quiz', label: 'Câu hỏi nhanh',
-        q: 'Trước khi ông Táo về trời, việc tự soi xét có ý nghĩa gì?',
-        options: [
-          { t: 'Nhìn thật lòng mình để năm sau sống tốt hơn', ok: true },
-          { t: 'Giấu đi những lỗi của năm cũ' },
-          { t: 'Chỉ cần sắm mâm cúng thật to' }
-        ]
+      listen: {
+        object: 'bếp lửa', icon: 'fire', teller: 'Bà kể',
+        lines: [
+          'Hồi bà còn nhỏ, chiều 23 tháng Chạp nào cụ cũng gọi cả nhà ra lau bếp.',
+          'Cụ bảo: lau tro cho sạch để ông Táo về trời thấy nhà mình sống tử tế.',
+          'Bà lau mãi rồi mới hiểu, cụ muốn mỗi người tự nhìn lại mình sau một năm.',
+          'Lỗi nào thì nhận, việc tốt nào thì giữ, để sang năm lòng nhẹ như gian bếp mới lau.'
+        ],
+        takeaway: 'Hướng thiện bắt đầu từ việc dám nhìn thật lòng mình.'
       }
     },
     {
@@ -202,10 +233,15 @@
       seed: 'Lần gần nhất cả nhà ngồi ăn cơm cùng nhau là khi nào?',
       story: 'Ba vị Táo, hai ông một bà, như ba chân kiềng đỡ nồi cơm của cả nhà. Ngoài kia có giông gió đến đâu, về bên bếp lửa thì mọi bất đồng đều nhường chỗ cho thấu hiểu. Giữ lửa không chỉ là giữ than hồng, mà là giữ lời nói nhẹ nhàng và sự bao dung cho người thương dưới một mái nhà.',
       badge: { name: 'Huy hiệu Mái Ấm', desc: 'Giữ lửa bằng sự lắng nghe và bao dung.' },
-      game: {
-        type: 'order', label: 'Ghép câu ca dao',
-        q: 'Chạm lần lượt các mảnh để ghép thành câu ca dao về hòa thuận.',
-        pieces: ['Thuận vợ', 'thuận chồng', 'tát biển Đông', 'cũng cạn']
+      listen: {
+        object: 'mâm cơm', icon: 'bowl-food', teller: 'Mẹ kể',
+        lines: [
+          'Năm ấy bố đi làm xa, tới tận chiều 23 mới về tới nhà.',
+          'Cả nhà vẫn ngồi đợi, nồi cơm được ủ trong rơm cho khỏi nguội.',
+          'Bố bước vào, chẳng ai trách một câu, chỉ có tiếng xới cơm và tiếng cười.',
+          'Mẹ bảo: mái ấm là nơi lúc nào cũng có người chờ mình về.'
+        ],
+        takeaway: 'Mái ấm được giữ bằng sự chờ đợi và bao dung.'
       }
     },
     {
@@ -218,15 +254,15 @@
       seed: 'Nhà bạn đang giữ lại một nếp nào từ ông bà?',
       story: 'Mỗi nhà có một mạch nguồn riêng: chiếc kiềng của bà, thúng gạo nếp của mẹ, nén hương ông thắp mỗi chiều cuối năm. Nếp nhà là những điều giản dị được trao qua nhiều thế hệ: kính trọng tổ tiên, biết ơn từng giọt mồ hôi. Ngày tiễn ông Táo, mùi hương trầm nhắc ta nhớ mình từ đâu đến.',
       badge: { name: 'Huy hiệu Nếp Nhà', desc: 'Trân trọng cội nguồn và những điều được trao lại.' },
-      game: {
-        type: 'match', label: 'Ghép vật dụng với ý nghĩa',
-        q: 'Chọn một vật dụng, rồi chọn ý nghĩa đúng của nó.',
-        pairs: [
-          ['Kiềng ba chân', 'Ba vị Táo giữ lửa bếp'],
-          ['Cá chép', 'Đưa ông Táo về trời'],
-          ['Nén hương', 'Lòng thành với tổ tiên'],
-          ['Mũ áo giấy', 'Lễ phục dâng ông Táo']
-        ]
+      listen: {
+        object: 'nén hương', icon: 'flower-lotus', teller: 'Ông kể',
+        lines: [
+          'Ông dạy cháu thắp hương: hai tay cầm nén, cúi đầu ba lần cho thành kính.',
+          'Cháu hỏi vì sao phải làm vậy. Ông cười, ngày xưa cụ dạy ông y như thế.',
+          'Giờ ông dạy cháu, mai kia cháu lại dạy con của cháu.',
+          'Nếp nhà không nằm trong sách, nó nằm trong những lần mình làm cùng nhau.'
+        ],
+        takeaway: 'Nếp nhà sống tiếp khi được trao lại qua từng thế hệ.'
       }
     },
     {
@@ -239,10 +275,15 @@
       seed: 'Bạn muốn mang điều tốt lành nào sang năm mới?',
       story: 'Cá chép vượt vũ môn hóa rồng là hình ảnh của ý chí bền bỉ, dám vượt khó để vươn lên. Thả cá chép ngày 23 tháng Chạp không chỉ là một nghi lễ, mà là gửi theo ước mong được tự do, được tiến bước, và niềm tin vào một năm mới tốt đẹp hơn cho mình và cho gia đình.',
       badge: { name: 'Huy hiệu Tốt Lành', desc: 'Mang ước mong tốt đẹp đi tiếp sang năm mới.' },
-      game: {
-        type: 'wish', label: 'Gửi lời nguyện',
-        q: 'Chọn một điều tốt lành, viết thêm vài chữ nếu muốn, rồi thả đèn trời.',
-        wishes: ['Cả nhà khỏe mạnh, đủ mặt mỗi bữa cơm', 'Một năm học tập, làm việc hanh thông', 'Sống tử tế hơn với người xung quanh']
+      listen: {
+        object: 'cá chép', icon: 'fish', teller: 'Mẹ kể cho con',
+        lines: [
+          'Sáng 23, hai mẹ con mang chậu cá chép đỏ ra bờ hồ.',
+          'Con hỏi: cá có bị lạc không mẹ? Mẹ bảo cá sẽ bơi ngược dòng, vượt vũ môn.',
+          'Như người mình, gặp khó vẫn cố đi tiếp, rồi sẽ tới nơi tốt đẹp.',
+          'Con thả cá xuống nước, thì thầm một điều ước cho cả nhà.'
+        ],
+        takeaway: 'Điều tốt lành đến khi mình dám mang ước mong đi tiếp.'
       }
     }
   ];
@@ -250,9 +291,9 @@
   // ----------------------------------------------------------------------
   // Quyển sách lật trang (StPageFlip). Bố cục 22 trang:
   //   0 bìa trước · 1 lời mở đầu · 2 mục lục
-  //   mỗi chương i: 3+4i tranh · 4+4i nội dung · 5+4i mini-game · 6+4i huy hiệu
+  //   mỗi chương i: 3+4i tranh · 4+4i nội dung · 5+4i lắng nghe · 6+4i huy hiệu
   //   19 tổng kết huy hiệu · 20 sự kiện · 21 bìa sau
-  // Trang đôi (desktop): [1,2] [3,4] [5,6] ... [19,20] → tranh|nội dung, game|huy hiệu.
+  // Trang đôi (desktop): [1,2] [3,4] [5,6] ... [19,20] → tranh|nội dung, lắng nghe|huy hiệu.
   // ----------------------------------------------------------------------
   const P = {
     cover: 0, intro: 1, toc: 2,
@@ -265,7 +306,6 @@
     idx: Math.min(store.get('chapter', 0), 3),
     page: Math.min(Math.max(store.get('page', 0), 0), P.count - 1),
     done: new Set(store.get('chapters_done', [])),
-    fails: [0, 0, 0, 0],
     started: new Set(),
     flip: null
   };
@@ -302,7 +342,7 @@
       <p class="pg-kicker">Lời mở đầu</p>
       <h3 class="pg-title">Gửi người giữ lửa</h3>
       <p class="pg-prose">Ngày 23 tháng Chạp, ông Táo cưỡi cá chép về trời, kể lại một năm của mỗi gia đình. Cuốn sách nhỏ này mời bạn ngồi bên bếp lửa, đọc bốn câu chuyện về hướng thiện, mái ấm, nếp nhà và điều tốt lành.</p>
-      <p class="pg-prose">Cuối mỗi chương có một thử thách nhỏ. Hoàn thành để nhận huy hiệu, rồi mang bốn huy hiệu đến sự kiện nhé.</p>
+      <p class="pg-prose">Cuối mỗi chương có một câu chuyện nhỏ để bạn lắng nghe. Nghe xong là mở huy hiệu, rồi mang bốn huy hiệu đến sự kiện nhé.</p>
       <p class="pg-hint"><i class="ph ph-hand-swipe-right" aria-hidden="true"></i> Kéo góc trang hoặc vuốt ngang để lật</p>
     </div>${folio(1)}`;
   pageHTML[P.toc] = `
@@ -330,10 +370,10 @@
         <p class="pg-prose pg-story">${c.story}</p>
         <div class="pg-tools">
           <button class="btn btn-ghost btn-sm" type="button" data-voice="${i}"><i class="ph ph-speaker-high" aria-hidden="true"></i> <span>Nghe đọc</span></button>
-          <button class="btn btn-quiet btn-sm" type="button" data-goto="${P.game(i)}">Làm thử thách <i class="ph ph-arrow-right" aria-hidden="true"></i></button>
+          <button class="btn btn-quiet btn-sm" type="button" data-goto="${P.game(i)}">Nghe chuyện kể <i class="ph ph-arrow-right" aria-hidden="true"></i></button>
         </div>
       </div>${folio(P.text(i))}`;
-    pageHTML[P.game(i)] = `<div class="pg-body"><p class="pg-kicker">Thử thách chương ${i + 1}</p><div class="game" id="game-${i}"></div></div>${folio(P.game(i))}`;
+    pageHTML[P.game(i)] = `<div class="pg-body"><p class="pg-kicker">Lắng nghe · Chương ${ROMAN[i]}</p><div class="game" id="game-${i}"></div></div>${folio(P.game(i))}`;
     pageHTML[P.badge(i)] = `<div class="pg-body pg-badge-page" id="badge-page-${i}"></div>${folio(P.badge(i))}`;
   });
   pageHTML[P.summary] = `
@@ -439,6 +479,7 @@
     book.page = p;
     store.set('page', p);
     stopVoice();
+    if (tale.playing && chapterOfPage(p) !== tale.i) stopTale();
     const ch = chapterOfPage(p);
     if (ch !== null && ch !== book.idx) { book.idx = ch; store.set('chapter', ch); moveIndicator(true); }
     if (ch !== null && !book.started.has(ch)) { book.started.add(ch); track('chapter_start', { chapter: ch + 1 }); }
@@ -452,7 +493,11 @@
     const go = e.target.closest('[data-goto]');
     if (go) { goPage(+go.dataset.goto); return; }
     const v = e.target.closest('[data-voice]');
-    if (v) voiceOver(v, +v.dataset.voice);
+    if (v) { voiceOver(v, +v.dataset.voice); return; }
+    const t = e.target.closest('[data-tale]');
+    if (t) { playTale(+t.dataset.tale); return; }
+    const all = e.target.closest('[data-tale-all]');
+    if (all) { stopTale(); finishTale(+all.dataset.taleAll, 'read'); }
   });
   $('#flip-prev').addEventListener('click', () => (book.flip ? book.flip.flipPrev() : goPage(Math.max(0, book.page - 1))));
   $('#flip-next').addEventListener('click', () => (book.flip ? book.flip.flipNext() : goPage(Math.min(P.count - 1, book.page + 1))));
@@ -469,7 +514,7 @@
       onPageChange(book.page);
       return;
     }
-    // Trang tỉ lệ 460:620 (điện thoại: 460:740 cho đủ chỗ mini-game),
+    // Trang tỉ lệ 460:620 (điện thoại: 460:740 cho đủ chỗ lời kể),
     // cao tối đa vừa màn hình (trừ header và thanh điều khiển)
     const narrow = window.innerWidth < 600;
     const ph = narrow ? 740 : 620;
@@ -499,7 +544,8 @@
   let voiceBtn = null;
   const setVoiceLabel = (btn, on) => { if (btn && btn.isConnected) btn.querySelector('span').textContent = on ? 'Dừng đọc' : 'Nghe đọc'; };
   function stopVoice() {
-    if ('speechSynthesis' in window) speechSynthesis.cancel();
+    // Chỉ huỷ giọng máy khi đang đọc chương, để không cắt ngang câu chuyện đang kể
+    if (speaking && 'speechSynthesis' in window) speechSynthesis.cancel();
     if (audioEl) { audioEl.pause(); audioEl = null; }
     if (speaking) setVoiceLabel(voiceBtn, false);
     speaking = false;
@@ -529,6 +575,7 @@
 
   function voiceOver(btn, i) {
     if (speaking) { stopVoice(); return; }
+    stopTale();
     const c = CHAPTERS[i];
     voiceBtn = btn; speaking = true; setVoiceLabel(btn, true);
     track('voice_play', { chapter: i + 1 });
@@ -538,91 +585,98 @@
     audioEl.play().catch(() => { /* lỗi tải file sẽ đi vào onerror */ });
   }
 
-  // ------------------------------------------------------------ mini-game
-  function gameShell(i, body) {
-    const c = CHAPTERS[i];
-    return `<div class="game-head"><h4><i class="ph ph-puzzle-piece" aria-hidden="true"></i>${c.game.label}</h4><button class="btn btn-quiet" type="button" id="skip-${i}" hidden>Bỏ qua</button></div>
-      <p class="game-prompt">${c.game.q}</p>${body}<p class="feedback" id="fb-${i}" role="status"></p>`;
+  // ------------------------------------------------------------ lắng nghe cuối chương
+  // Góp ý của cô: khách hàng không thích dạng quiz, nên cuối mỗi chương là một câu chuyện để nghe.
+  // Chạm vào một vật (bếp lửa, mâm cơm, nén hương, cá chép) để nghe một chuyện gia đình ngắn.
+  // Âm thanh: ưu tiên file audio/ke-chuyen-N.mp3, rồi giọng tiếng Việt của trình duyệt;
+  // máy không có giọng Việt thì lời kể hiện dần từng câu theo nhịp đọc. Nghe hết thì mở huy hiệu.
+  const tale = { i: null, timers: [], audio: null, playing: false };
+
+  function renderListen(i, done) {
+    const c = CHAPTERS[i], L = c.listen;
+    $('#game-' + i).innerHTML = `
+      <div class="listen ${done ? 'is-done' : ''}">
+        <p class="listen-prompt">${done ? 'Bạn đã nghe câu chuyện này.' : `Chạm vào ${L.object} để nghe một câu chuyện nhỏ.`}</p>
+        <button class="listen-obj" type="button" data-tale="${i}" aria-label="${done ? 'Nghe lại' : 'Chạm để nghe'}: ${L.teller}">
+          <span class="listen-ring" aria-hidden="true"></span><span class="listen-ring" aria-hidden="true"></span>
+          <i class="ph-fill ph-${L.icon}" aria-hidden="true"></i>
+        </button>
+        <p class="listen-teller"><i class="ph ph-waveform" aria-hidden="true"></i> ${L.teller}</p>
+        <ol class="listen-lines" id="lines-${i}">${L.lines.map((t) => `<li class="${done ? 'is-on' : ''}">${t}</li>`).join('')}</ol>
+        <p class="listen-take ${done ? 'is-on' : ''}" id="take-${i}">${L.takeaway}</p>
+        ${done
+          ? `<button class="btn btn-primary" type="button" data-goto="${P.badge(i)}">Nhận huy hiệu <i class="ph ph-arrow-right" aria-hidden="true"></i></button>`
+          : `<button class="linklike listen-all" type="button" data-tale-all="${i}">Không nghe được? Đọc lời kể</button>`}
+      </div>`;
   }
-  function fail(i, msg, el) {
-    book.fails[i]++;
-    const fb = $('#fb-' + i); fb.className = 'feedback err'; fb.textContent = msg;
-    if (el) { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
-    // PDF S02: có nút bỏ qua mini-game sau lần sai thứ 3
-    if (book.fails[i] >= 3) $('#skip-' + i).hidden = false;
+
+  function stopTale() {
+    tale.timers.forEach(clearTimeout); tale.timers = [];
+    if (tale.audio) { tale.audio.pause(); tale.audio = null; }
+    if (tale.playing && 'speechSynthesis' in window) speechSynthesis.cancel();
+    const obj = tale.i !== null && $(`[data-tale="${tale.i}"]`);
+    if (obj) obj.classList.remove('is-playing');
+    tale.playing = false; tale.i = null;
   }
 
-  function renderGame(i) {
-    const c = CHAPTERS[i], g = c.game, box = $('#game-' + i);
-    book.fails[i] = 0;
-    if (g.type === 'quiz') {
-      const opts = g.options.map((o, k) => ({ ...o, k })).sort(() => Math.random() - 0.5);
-      box.innerHTML = gameShell(i, `<div class="options">${opts.map((o) => `<button class="option" type="button" data-k="${o.k}"><i class="ph ph-circle" aria-hidden="true"></i>${o.t}</button>`).join('')}</div>`);
-      $$('.option', box).forEach((b) => b.addEventListener('click', () => {
-        const o = g.options[+b.dataset.k];
-        if (o.ok) { b.classList.add('is-right'); completeChapter(i); }
-        else { b.classList.add('is-wrong'); b.disabled = true; fail(i, 'Chưa đúng rồi. Đọc lại đoạn đầu chương một chút nhé.', b); }
-      }));
-    }
+  function showLine(i, k) {
+    const li = $$(`#lines-${i} li`)[k];
+    if (!li || li.classList.contains('is-on')) return;
+    li.classList.add('is-on');
+    if (hasGsap && !reduceMotion) gsap.from(li, { y: 10, opacity: 0, duration: 0.5, ease: 'power2.out' });
+  }
 
-    if (g.type === 'order') {
-      const shuffled = g.pieces.map((p, k) => ({ p, k })).sort(() => Math.random() - 0.5);
-      box.innerHTML = gameShell(i, `<div class="answer-line" id="answer-${i}" data-empty="Câu ca dao sẽ hiện ở đây"></div>
-        <div class="chips">${shuffled.map((s) => `<button class="chip" type="button" data-k="${s.k}">${s.p}</button>`).join('')}</div>`);
-      let next = 0;
-      $$('.chips .chip', box).forEach((b) => b.addEventListener('click', () => {
-        if (+b.dataset.k === next) {
-          b.classList.add('is-used');
-          const s = document.createElement('span'); s.textContent = g.pieces[next];
-          $('#answer-' + i).appendChild(s);
-          if (hasGsap && !reduceMotion) gsap.from(s, { y: 12, opacity: 0, duration: 0.3, ease: 'back.out(1.6)' });
-          next++;
-          if (next === g.pieces.length) completeChapter(i);
-        } else fail(i, 'Mảnh này đứng sau một chút. Thử mảnh khác nhé.', b);
-      }));
+  function finishTale(i, mode) {
+    stopTale();
+    CHAPTERS[i].listen.lines.forEach((_, k) => showLine(i, k));
+    const take = $('#take-' + i);
+    if (take) {
+      take.classList.add('is-on');
+      if (hasGsap && !reduceMotion) gsap.from(take, { scale: 0.92, opacity: 0, duration: 0.6, ease: 'back.out(1.6)' });
     }
+    track('listen_complete', { chapter: i + 1, mode });
+    if (i === 3) releaseLantern($(`[data-tale="${i}"]`) || take);
+    setTimeout(() => completeChapter(i), 1400);
+  }
 
-    if (g.type === 'match') {
-      const left = g.pairs.map((p, k) => ({ t: p[0], k })).sort(() => Math.random() - 0.5);
-      const right = g.pairs.map((p, k) => ({ t: p[1], k })).sort(() => Math.random() - 0.5);
-      box.innerHTML = gameShell(i, `<div class="match-grid">
-        <div class="match-col" aria-label="Vật dụng">${left.map((l) => `<button class="chip" type="button" data-side="l" data-k="${l.k}">${l.t}</button>`).join('')}</div>
-        <div class="match-col" aria-label="Ý nghĩa">${right.map((r) => `<button class="chip" type="button" data-side="r" data-k="${r.k}">${r.t}</button>`).join('')}</div>
-      </div>`);
-      let pick = null, matched = 0;
-      $$('.chip', box).forEach((b) => b.addEventListener('click', () => {
-        if (!pick || pick.dataset.side === b.dataset.side) {
-          if (pick) pick.classList.remove('is-selected');
-          pick = b; b.classList.add('is-selected'); return;
-        }
-        if (pick.dataset.k === b.dataset.k) {
-          [pick, b].forEach((x) => { x.classList.remove('is-selected'); x.classList.add('is-matched'); x.setAttribute('aria-disabled', 'true'); });
-          matched++; pick = null;
-          const fb = $('#fb-' + i); fb.className = 'feedback ok'; fb.textContent = `Đúng rồi. Còn ${g.pairs.length - matched} cặp.`;
-          if (matched === g.pairs.length) completeChapter(i);
-        } else {
-          pick.classList.remove('is-selected'); pick = null;
-          fail(i, 'Chưa khớp. Nghĩ về câu chuyện chương này rồi thử lại.', b);
-        }
-      }));
-    }
+  function playTale(i) {
+    if (tale.playing) { const same = tale.i === i; stopTale(); if (same) return; }
+    const L = CHAPTERS[i].listen;
+    stopVoice();
+    tale.i = i; tale.playing = true;
+    $(`[data-tale="${i}"]`).classList.add('is-playing');
+    $$(`#lines-${i} li`).forEach((li) => li.classList.remove('is-on'));
+    $('#take-' + i).classList.remove('is-on');
+    track('listen_play', { chapter: i + 1 });
 
-    if (g.type === 'wish') {
-      box.innerHTML = gameShell(i, `<div class="wish-list" role="radiogroup" aria-label="Điều tốt lành">
-          ${g.wishes.map((w, k) => `<label><input type="radio" name="wish-${i}" value="${k}" ${k === 0 ? 'checked' : ''}>${w}</label>`).join('')}
-        </div>
-        <div class="field">
-          <label for="wish-note-${i}">Lời nhắn thêm <span class="opt" style="color:var(--text-dim);font-weight:400">(không bắt buộc)</span></label>
-          <input class="input" id="wish-note-${i}" maxlength="80" placeholder="Ví dụ: năm nay về nhà sớm hơn">
-        </div>
-        <button class="btn btn-primary" type="button" id="release-${i}"><i class="ph ph-paper-plane-tilt" aria-hidden="true"></i> Thả đèn trời</button>`);
-      $('#release-' + i).addEventListener('click', (e) => {
-        store.set('wish', { choice: +$(`input[name="wish-${i}"]:checked`).value, note: $('#wish-note-' + i).value.trim() });
-        releaseLantern(e.currentTarget);
-        completeChapter(i);
+    // Lời kể hiện dần theo nhịp đọc (dùng khi không có âm thanh)
+    const byText = () => {
+      let t = 0;
+      L.lines.forEach((line, k) => { tale.timers.push(setTimeout(() => showLine(i, k), t)); t += Math.max(2200, line.length * 55); });
+      tale.timers.push(setTimeout(() => finishTale(i, 'text'), t));
+    };
+    // Giọng tiếng Việt của trình duyệt: đọc từng câu, câu nào đọc tới thì hiện câu đó
+    const byVoice = () => {
+      const voice = viVoice();
+      if (!voice) { byText(); return; }
+      L.lines.forEach((line, k) => {
+        const u = new SpeechSynthesisUtterance(line);
+        u.voice = voice; u.lang = voice.lang; u.rate = 0.92;
+        u.onstart = () => showLine(i, k);
+        if (k === L.lines.length - 1) u.onend = () => { if (tale.i === i) finishTale(i, 'voice'); };
+        speechSynthesis.speak(u);
       });
-    }
-    $('#skip-' + i).addEventListener('click', () => { track('minigame_skip', { chapter: i + 1 }); completeChapter(i, true); });
+    };
+    // File thu âm: chia đều thời lượng cho từng câu
+    const a = new Audio(`audio/ke-chuyen-${i + 1}.mp3`);
+    tale.audio = a;
+    a.onloadedmetadata = () => {
+      const step = (a.duration * 1000) / L.lines.length;
+      L.lines.forEach((_, k) => tale.timers.push(setTimeout(() => showLine(i, k), k * step)));
+    };
+    a.onended = () => { if (tale.i === i) finishTale(i, 'audio'); };
+    a.onerror = () => { if (tale.audio === a) { tale.audio = null; byVoice(); } };
+    a.play().catch(() => { /* lỗi tải file sẽ đi vào onerror */ });
   }
 
   function releaseLantern(fromEl) {
@@ -641,13 +695,7 @@
     }
   }
 
-  // Trang game sau khi xong + trang huy hiệu của chương
-  function renderGameDone(i) {
-    $('#game-' + i).innerHTML = `
-      <div class="game-done"><span class="medal"><i class="ph-fill ph-check-fat" aria-hidden="true"></i></span>
-        <span><strong>Bạn đã hoàn thành thử thách</strong><span>Lật trang để nhận huy hiệu.</span></span></div>
-      <button class="btn btn-primary" type="button" data-goto="${P.badge(i)}">Nhận huy hiệu <i class="ph ph-arrow-right" aria-hidden="true"></i></button>`;
-  }
+  // Trang huy hiệu của chương
   function renderBadgePage(i, animate) {
     const c = CHAPTERS[i], on = book.done.has(i), last = i === CHAPTERS.length - 1;
     const pg = $('#badge-page-' + i);
@@ -655,31 +703,30 @@
       <p class="pg-kicker">Huy hiệu chương ${i + 1}</p>
       <div class="pg-medal ${on ? 'is-on' : ''}"><i class="ph${on ? '-fill' : ''} ph-${on ? 'medal' : 'lock-simple'}" aria-hidden="true"></i></div>
       <h3 class="pg-title">${c.badge.name}</h3>
-      <p class="pg-prose">${on ? c.badge.desc : 'Hoàn thành thử thách ở trang bên để mở huy hiệu này.'}</p>
+      <p class="pg-prose">${on ? c.badge.desc : 'Nghe câu chuyện ở trang bên để mở huy hiệu này.'}</p>
       ${on ? (last
         ? `<button class="btn btn-primary" type="button" data-goto="${P.summary}">Xem bộ huy hiệu <i class="ph ph-arrow-right" aria-hidden="true"></i></button>`
         : `<button class="btn btn-primary" type="button" data-goto="${P.art(i + 1)}">Sang chương ${i + 2} <i class="ph ph-arrow-right" aria-hidden="true"></i></button>`)
-        : `<button class="btn btn-ghost" type="button" data-goto="${P.game(i)}"><i class="ph ph-arrow-left" aria-hidden="true"></i> Về thử thách</button>`}`;
+        : `<button class="btn btn-ghost" type="button" data-goto="${P.game(i)}"><i class="ph ph-arrow-left" aria-hidden="true"></i> Về câu chuyện</button>`}`;
     if (animate && hasGsap && !reduceMotion) gsap.from($('.pg-medal', pg), { scale: 0.3, rotation: -40, duration: 0.7, ease: 'back.out(2)', delay: 0.2 });
   }
 
-  function completeChapter(i, skipped) {
+  function completeChapter(i) {
     const first = !book.done.has(i);
     book.done.add(i);
     store.set('chapters_done', [...book.done]);
     sound.chime();
-    track('chapter_complete', { chapter: i + 1, skipped: !!skipped });
+    track('chapter_complete', { chapter: i + 1 });
     if (first) {
       track('badge_unlocked', { badge: CHAPTERS[i].badge.name });
       toast(`Bạn vừa mở ${CHAPTERS[i].badge.name}.`, 'gold', 'medal');
     }
     setTimeout(() => {
-      renderGameDone(i);
-      if (hasGsap && !reduceMotion) gsap.from($('#game-' + i + ' .game-done'), { scale: 0.9, opacity: 0, duration: 0.5, ease: 'back.out(1.6)' });
+      renderListen(i, true);
       renderBadgePage(i, true);
       syncTabs();
       renderBadges();
-    }, skipped ? 0 : 500);
+    }, 0);
   }
 
   /* ======================================================================
@@ -699,6 +746,7 @@
     $('[data-summary-text]').textContent = n === 4
       ? 'Hướng thiện, mái ấm, nếp nhà và tốt lành. Mang cả bốn giá trị ấy đến sự kiện và đóng dấu ở bốn trạm nhé.'
       : 'Bốn trạm thực tế đang chờ bạn đóng dấu và nhận quà.';
+    if (typeof renderLetter === 'function' && $('#letter-lock')) renderLetter();
   }
 
   /* ======================================================================
@@ -713,7 +761,30 @@
   const ALPHA = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // bỏ ký tự dễ nhầm (0/O, 1/I/L)
   const randCode = (n) => Array.from({ length: n }, () => ALPHA[Math.floor(Math.random() * ALPHA.length)]).join('');
 
-  let pass = store.get('pass', null); // { id, nickname, email?, consent, stamps:[], giftCode, claimed, synced }
+  let pass = store.get('pass', null); // { id, nickname, email?, consent, stamps:[], giftCode, claimed, synced, offlineId? }
+
+  // Trùng nickname (góp ý 4b). Bản thử nghiệm chưa có máy chủ: danh sách tên đã có là dữ liệu giả lập
+  // + tên đã đăng ký trên máy này. Khi có API thì thay isTaken bằng lệnh hỏi máy chủ.
+  const DEMO_TAKEN = ['MINH', 'BE NA', 'NA', 'AN', 'LAN', 'MINH KHOI', 'KHOI', 'TAO', 'NGOC', 'LINH'];
+  const isTaken = (name) => DEMO_TAKEN.includes(plain(name)) || store.get('registry', []).includes(plain(name));
+  const withSuffix = (name) => name.slice(0, 18).trim() + '_' + String(Math.floor(1000 + Math.random() * 9000));
+
+  // Thẻ tạo lúc mất mạng (góp ý 4a): mã tiền tố OFF- để nhân sự nhận ra ngay.
+  // Có mạng lại thì máy chủ cấp mã TAO- chính thức (giữ phần đuôi), mã OFF- cũ vẫn tra cứu được.
+  function syncPass() {
+    if (!pass || pass.synced || !navigator.onLine) return;
+    const old = pass.id;
+    pass.offlineId = old;
+    pass.id = 'TAO-' + old.slice(4);
+    pass.synced = true;
+    let renamed = false;
+    if (isTaken(pass.nickname)) { pass.nickname = withSuffix(pass.nickname); renamed = true; }
+    store.set('pass', pass);
+    store.set('registry', [...new Set([...store.get('registry', []), plain(pass.nickname)])]);
+    track('offline_id_synced', { renamed });
+    renderTicket();
+    toast(`Đã đồng bộ thẻ. Mã chính thức của bạn: ${pass.id}.` + (renamed ? ` Tên bị trùng nên được đổi thành "${esc(pass.nickname)}".` : ''), 'ok', 'wifi-high');
+  }
 
   // Validate khi rời ô (UI/UX Pro Max: inline validation on blur)
   const fName = $('#f-nickname'), fEmail = $('#f-email'), fConsent = $('#f-consent');
@@ -736,7 +807,7 @@
   fName.addEventListener('input', () => { if (fName.getAttribute('aria-invalid') === 'true') validateName(); });
   fEmail.addEventListener('input', () => { if (fEmail.getAttribute('aria-invalid') === 'true') validateEmail(); });
 
-  $('#form-register').addEventListener('submit', (e) => {
+  $('#form-register').addEventListener('submit', async (e) => {
     e.preventDefault();
     const okName = validateName(), okEmail = validateEmail();
     const summary = $('#error-summary');
@@ -749,6 +820,27 @@
       return;
     }
     summary.hidden = true;
+    let nickname = fName.value.trim();
+    const offline = !navigator.onLine;
+    // Có mạng mới kiểm tra trùng được; mất mạng thì kiểm tra lúc đồng bộ
+    if (!offline && isTaken(nickname)) {
+      const suffix = withSuffix(nickname);
+      const choice = await ask({
+        title: `Tên “${esc(nickname)}” đã có người dùng`,
+        html: `<p>Nếu <strong>bạn đã từng tạo thẻ</strong>, hãy lấy lại thẻ cũ để giữ các dấu trạm đã đóng.</p>
+          <p>Nếu <strong>bạn là người mới</strong>, dùng tên có thêm số để nhân sự không nhầm hai người:</p>
+          <p class="dlg-chip">${esc(suffix)}</p>`,
+        buttons: [
+          { label: 'Đổi tên khác', value: 'edit', cls: 'btn-quiet' },
+          { label: 'Lấy lại thẻ cũ', value: 'restore', cls: 'btn-ghost' },
+          { label: `Dùng tên ${esc(suffix)}`, value: 'suffix', cls: 'btn-primary' }
+        ]
+      });
+      track('nickname_conflict', { choice: choice || 'dismiss' });
+      if (choice === 'restore') { openRestore(); return; }
+      if (choice !== 'suffix') { fName.focus(); fName.select(); return; }
+      nickname = suffix;
+    }
     const btn = $('#btn-register');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner" aria-hidden="true"></span><span>Đang tạo thẻ…</span>';
@@ -758,22 +850,23 @@
     // Mô phỏng gọi máy chủ; mất mạng thì tạo ID cục bộ và đồng bộ sau (PDF A3)
     setTimeout(() => {
       pass = {
-        id: 'TAO-' + randCode(6),
-        nickname: fName.value.trim(),
+        id: (offline ? 'OFF-' : 'TAO-') + randCode(6),
+        nickname,
         email: consent && email ? email : null, // từ chối consent: không lưu email
         consent,
         stamps: [],
         giftCode: 'QUA-' + randCode(4),
         claimed: false,
-        synced: navigator.onLine
+        synced: !offline
       };
       store.set('pass', pass);
+      if (!offline) store.set('registry', [...new Set([...store.get('registry', []), plain(nickname)])]);
       track('form_submit');
       track(consent ? 'consent_accepted' : 'consent_declined');
-      track('virtual_id_created', { offline: !navigator.onLine });
+      track('virtual_id_created', { offline });
       btn.disabled = false;
       btn.innerHTML = '<span class="btn-label">Tạo thẻ thông hành</span>';
-      if (!navigator.onLine) toast('Đang ngoại tuyến nên thẻ được tạo trên máy. Thẻ sẽ tự đồng bộ khi có mạng.', 'info', 'wifi-slash');
+      if (offline) toast(`Đang mất mạng nên thẻ được tạo trên máy với mã ${pass.id}. Có mạng lại, thẻ tự đồng bộ sang mã chính thức.`, 'info', 'wifi-slash');
       else if (!consent && email) toast('Thẻ đã sẵn sàng. Vì bạn chưa đồng ý, chúng tôi không lưu email.', 'ok');
       else toast('Thẻ thông hành đã sẵn sàng. Đưa mã QR cho nhân sự ở mỗi trạm nhé.', 'ok', 'identification-card');
       $('#form-register').reset();
@@ -782,14 +875,34 @@
     }, 700);
   });
 
-  $('#btn-restore').addEventListener('click', () => {
-    // A7: xóa dữ liệu trình duyệt thì nhập lại Virtual ID (bản thật sẽ tra trên máy chủ)
-    const v = (prompt('Nhập mã thẻ của bạn (dạng TAO-XXXXXX):') || '').trim().toUpperCase();
-    if (!v) return;
-    if (!/^TAO-[A-Z0-9]{6}$/.test(v)) { toast('Mã thẻ có dạng TAO- và 6 ký tự. Bạn xem lại giúp nhé.', 'err'); return; }
-    if (pass && pass.id === v) { toast('Thẻ này đang mở trên máy rồi.', 'info'); return; }
-    toast('Bản thử nghiệm chưa kết nối máy chủ nên chưa tải lại được thẻ. Nhân sự tại bàn check-in sẽ hỗ trợ bạn.', 'info', 'lifebuoy');
-  });
+  // Lấy lại thẻ cũ bằng email hoặc mã thẻ (góp ý 4b, PDF A7). Bản thật sẽ tra trên máy chủ.
+  async function openRestore() {
+    const p = ask({
+      title: 'Lấy lại thẻ đã tạo',
+      html: `<p>Nhập <strong>email</strong> bạn dùng khi đăng ký, hoặc <strong>mã thẻ</strong> (dạng TAO-XXXXXX hoặc OFF-XXXXXX).</p>
+        <label class="dlg-label" for="dlg-restore">Email hoặc mã thẻ</label>
+        <input class="input" id="dlg-restore" autocomplete="off" spellcheck="false" placeholder="ban@email.com hoặc TAO-ABC123">
+        <p class="error-text" id="dlg-restore-err" aria-live="polite"></p>`,
+      buttons: [{ label: 'Huỷ', value: 'cancel', cls: 'btn-quiet' }, { label: 'Lấy lại thẻ', value: 'ok', cls: 'btn-primary', id: 'dlg-restore-ok' }]
+    });
+    const input = $('#dlg-restore');
+    input.focus();
+    // Kiểm tra định dạng trước khi đóng hộp thoại
+    $('#dlg-restore-ok').addEventListener('click', (e) => {
+      const v = input.value.trim();
+      const ok = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) || /^(TAO|OFF)-[A-Z0-9]{6}$/i.test(v);
+      if (!ok) { e.preventDefault(); $('#dlg-restore-err').innerHTML = '<i class="ph ph-warning-circle" aria-hidden="true"></i>Email chưa đúng, hoặc mã thẻ chưa đủ dạng TAO- và 6 ký tự.'; input.focus(); }
+    });
+    if (await p !== 'ok') return;
+    const v = input.value.trim();
+    const isEmail = v.includes('@');
+    track('restore_request', { by: isEmail ? 'email' : 'code' });
+    if (!isEmail && pass && (pass.id === v.toUpperCase() || pass.offlineId === v.toUpperCase())) { toast('Thẻ này đang mở trên máy rồi.', 'info'); return; }
+    toast(isEmail
+      ? 'Nếu email này đã đăng ký, chúng tôi sẽ gửi đường dẫn lấy lại thẻ vào hộp thư. Bản thử nghiệm chưa gửi được thư, nhân sự check-in sẽ hỗ trợ bạn.'
+      : 'Bản thử nghiệm chưa kết nối máy chủ nên chưa tải lại được thẻ. Đưa mã này cho nhân sự check-in để được hỗ trợ.', 'info', 'lifebuoy');
+  }
+  $('#btn-restore').addEventListener('click', openRestore);
 
   // ----------------------------------------------------------------------
   // Hộ chiếu thông hành (lật trang, StPageFlip). 10 trang:
@@ -898,14 +1011,14 @@
           <div class="pp-photo" aria-hidden="true">${esc(pass.nickname.trim().charAt(0).toUpperCase())}</div>
           <dl class="pp-fields">
             <div><dt>Họ tên / Nickname</dt><dd>${esc(pass.nickname)}</dd></div>
-            <div><dt>Mã thẻ</dt><dd class="mono">${pass.id}</dd></div>
+            <div><dt>Mã thẻ</dt><dd class="mono">${pass.id}${pass.synced ? '' : '<span class="pp-off" title="Tạo khi mất mạng, chưa đồng bộ">CHƯA ĐỒNG BỘ</span>'}</dd></div>
             <div><dt>Ngày cấp</dt><dd>${fmtDate(pass.issuedAt)}</dd></div>
             <div><dt>Nơi cấp</dt><dd>Bếp lửa nhà mình</dd></div>
           </dl>
         </div>
         <div class="pp-qr-row">
           <div class="pp-qr" id="pp-qr" role="img" aria-label="Mã QR của thẻ ${pass.id}"></div>
-          <p>Đưa mã QR này cho nhân sự ở mỗi trạm để đóng dấu.</p>
+          <p>${pass.synced ? 'Đưa mã QR này cho nhân sự ở mỗi trạm để đóng dấu.' : 'Thẻ tạo lúc mất mạng (mã OFF-). Nhân sự vẫn quét và đóng dấu được, thẻ tự đồng bộ khi có mạng.'}</p>
         </div>
         <div class="pp-mrz" aria-hidden="true"><span>${esc(l1)}</span><span>${esc(l2)}</span></div>
       </div>`;
@@ -925,16 +1038,18 @@
       </div>`;
     const id = n - 2;
     if (id >= 1 && id <= 4) {
-      const s = STATIONS[id - 1], on = pass.stamps.includes(id), st = STAMP_STYLE[id];
+      const s = STATIONS[id - 1], on = pass.stamps.includes(id), st = STAMP_STYLE[id], photo = moments[String(id)];
       return `<div class="pp-page pp-visa" style="--ink:${st.ink}">
         ${ppHead('VISA · TRẠM ' + ROMAN_ST[id - 1], 'TRANG ' + n)}
         <h4 class="pp-title">${s.name}</h4>
         <p class="pp-note">${VISA_TEXT[id]}</p>
-        <div class="pp-stamp-zone ${on ? 'is-on' : ''}" data-zone="${id}">
+        <div class="pp-stamp-zone ${on ? 'is-on' : ''} ${on && photo ? 'has-photo' : ''}" data-zone="${id}">
           ${on
             ? `<div class="pp-stamp" data-stamp="${id}" style="--rot:${st.rot}deg;--dx:${st.x}px;--dy:${st.y}px">${stampSVG(id, stampedAt(id))}</div>`
             : `<p class="pp-empty"><i class="ph ph-stamp" aria-hidden="true"></i>Chỗ đóng dấu<small>Đến ${s.name} và đưa mã QR cho nhân sự</small></p>`}
+          ${on && photo ? `<figure class="pp-polaroid" style="--r:${id % 2 ? 4 : -5}deg"><img src="${photo}" alt="Khoảnh khắc ở ${s.name}"><button class="pp-polaroid-btn" type="button" data-moment="${id}" aria-label="Đổi ảnh khoảnh khắc ở ${s.name}"><i class="ph ph-camera" aria-hidden="true"></i></button></figure>` : ''}
         </div>
+        ${on && !photo ? `<button class="pp-photo-add" type="button" data-moment="${id}"><i class="ph ph-camera-plus" aria-hidden="true"></i> Lưu khoảnh khắc ở trạm này</button>` : ''}
       </div>`;
     }
     if (n === PP.done) return `<div class="pp-page">
@@ -949,7 +1064,7 @@
       </div>`;
     if (n === PP.notes) return `<div class="pp-page pp-notes">
         ${ppHead('GHI CHÚ', 'TRANG 8')}
-        <p class="pp-note">Ghi lại một khoảnh khắc đáng nhớ ở sự kiện.</p>
+        <p class="pp-note">Ở mỗi trang visa, bạn lưu được một ảnh khoảnh khắc của trạm đó. Đủ bốn dấu, các ảnh sẽ được dán vào lá sớ gửi Táo.</p>
         <div class="pp-lines" aria-hidden="true">${'<span></span>'.repeat(9)}</div>
       </div>`;
     return `<div class="pp-cover pp-cover-back"><div class="pp-emblem pp-emblem-sm" aria-hidden="true"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="54" fill="none" stroke="currentColor" stroke-width="3"/><text x="60" y="72" text-anchor="middle" font-family="Be Vietnam Pro, Arial" font-size="26" font-weight="800" fill="currentColor">Táo</text></svg></div><p class="pp-cover-sub">#ChuyenNhaTao</p></div>`;
@@ -1032,7 +1147,10 @@
       bookEl.appendChild(el);
       return el;
     });
-    bookEl.addEventListener('click', (e) => { const b = e.target.closest('[data-ppgo]'); if (b) ppGo(+b.dataset.ppgo); });
+    bookEl.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-ppgo]'); if (b) { ppGo(+b.dataset.ppgo); return; }
+      const m = e.target.closest('[data-moment]'); if (m) pickMoment(m.dataset.moment);
+    });
 
     const PF = window.St && window.St.PageFlip;
     const start = animate ? PP.cover : Math.min(store.get('pp_page', PP.data), PP.count - 1);
@@ -1121,6 +1239,7 @@
 
   function renderCheckout() {
     const box = $('#checkout');
+    if (typeof renderLetter === 'function' && $('#letter-lock')) renderLetter();
     if (!pass || pass.stamps.length < 4) { box.hidden = true; return; }
     box.hidden = false;
     box.innerHTML = `
@@ -1129,10 +1248,12 @@
       <p class="gift-code ${pass.claimed ? 'is-claimed' : ''}" aria-label="Mã nhận quà ${pass.giftCode.split('').join(' ')}">${pass.giftCode}</p>
       ${pass.claimed ? '' : '<button class="btn btn-ghost" type="button" id="btn-claim"><i class="ph ph-hand-heart" aria-hidden="true"></i> Nhân sự xác nhận đã trao quà</button>'}
       <div class="optin">
-        <strong>Muốn nhận một bí mật nhỏ?</strong>
-        <p style="color:var(--text-muted);font-size:15px">Tạo thẻ Vị Táo của riêng bạn để lưu lại một năm đáng nhớ.</p>
+        <strong>Viết lá sớ gửi Táo</strong>
+        <p style="color:var(--text-muted);font-size:15px">${book.done.size === 4
+          ? 'Lá sớ đã mở. Ghi bốn lời gửi ông Táo và dán ảnh khoảnh khắc ở các trạm.'
+          : `Còn ${4 - book.done.size} câu chuyện trong sách chưa nghe. Nghe đủ bốn chương để mở lá sớ.`}</p>
         <div class="optin-actions">
-          <a class="btn btn-primary btn-sm" href="#the-vi-tao" id="optin-yes">Tạo thẻ Vị Táo</a>
+          <a class="btn btn-primary btn-sm" href="${book.done.size === 4 ? '#la-so' : '#doc-sach'}" id="optin-yes">${book.done.size === 4 ? 'Viết lá sớ' : 'Nghe tiếp chuyện'}</a>
           <button class="btn btn-quiet" type="button" id="optin-no">Để sau</button>
         </div>
       </div>`;
@@ -1145,219 +1266,305 @@
       renderCheckout();
     });
     $('#optin-yes').addEventListener('click', () => track('optin_yes'));
-    $('#optin-no').addEventListener('click', () => { track('optin_no'); toast('Không sao. Thẻ Vị Táo luôn chờ bạn ở cuối trang.', 'info'); });
+    $('#optin-no').addEventListener('click', () => { track('optin_no'); toast('Không sao. Lá sớ luôn chờ bạn ở cuối trang.', 'info'); });
     if (hasGsap && !reduceMotion) gsap.from(box, { y: 20, opacity: 0, duration: 0.5, ease: 'power3.out' });
   }
 
-  $('#btn-clear-local').addEventListener('click', () => {
-    if (!confirm('Xóa thẻ, dấu trạm và tiến độ đọc sách trên máy này?')) return;
+  // Xoá dữ liệu (góp ý 4c): nói rõ sẽ mất gì, phải gõ XOÁ mới bật được nút xoá
+  $('#btn-clear-local').addEventListener('click', async () => {
+    const lose = [];
+    if (pass) lose.push(`Thẻ thông hành <strong>${esc(pass.id)}</strong> mang tên ${esc(pass.nickname)}`);
+    if (pass && pass.stamps.length) lose.push(`${pass.stamps.length}/4 dấu trạm đã đóng`);
+    if (pass && pass.stamps.length === 4 && !pass.claimed) lose.push(`Mã nhận quà <strong>${esc(pass.giftCode)}</strong> (chưa nhận quà)`);
+    if (book.done.size) lose.push(`${book.done.size}/4 huy hiệu trong sách`);
+    const nPhoto = momentCount();
+    if (nPhoto) lose.push(`${nPhoto} ảnh khoảnh khắc ở sự kiện`);
+    lose.push('Tiến độ đọc sách và lá sớ đang soạn');
+    const p = ask({
+      tone: 'danger',
+      title: 'Xoá dữ liệu trên máy này?',
+      html: `<p>Những thứ sau sẽ mất và <strong>không khôi phục được</strong> trên máy này:</p>
+        <ul class="dlg-list">${lose.map((x) => `<li>${x}</li>`).join('')}</ul>
+        ${pass ? `<p class="dlg-note"><i class="ph ph-camera" aria-hidden="true"></i><span>Nên chụp lại mã thẻ <strong>${esc(pass.id)}</strong> trước, để nhân sự có thể hỗ trợ lấy lại.</span></p>` : ''}
+        <label class="dlg-label" for="dlg-type">Gõ <strong>XOÁ</strong> để xác nhận</label>
+        <input class="input" id="dlg-type" autocomplete="off" spellcheck="false" placeholder="XOÁ">`,
+      buttons: [{ label: 'Giữ lại dữ liệu', value: 'cancel', cls: 'btn-primary' }, { label: 'Xoá vĩnh viễn', value: 'ok', cls: 'btn-danger', id: 'dlg-ok', disabled: true }]
+    });
+    const input = $('#dlg-type');
+    input.addEventListener('input', () => { $('#dlg-ok').disabled = plain(input.value) !== 'XOA'; });
+    input.focus();
+    const v = await p;
+    track('clear_data', { confirmed: v === 'ok' });
+    if (v !== 'ok') return;
     store.clear();
     pass = null; book.done.clear(); book.idx = 0; book.started.clear();
-    renderTicket(); renderAllChapters(); goPage(P.cover); moveIndicator(false);
-    toast('Đã xóa dữ liệu trên máy này.', 'ok');
+    renderTicket(); renderAllChapters(); goPage(P.cover); moveIndicator(false); renderLetter();
+    toast('Đã xoá dữ liệu trên máy này.', 'ok');
   });
 
   /* ======================================================================
-   * S07–S08 · UGC "YEAR IN VALUES"
+   * S07–S08 · LÁ SỚ GỬI TÁO (UGC "Year in Values")
+   * Góp ý của cô: không gán người dùng vào MỘT giá trị như tính cách ("bạn là Táo X"),
+   * vì sẽ khiến họ bỏ qua ba giá trị còn lại. Lá sớ luôn ghi đủ BỐN giá trị,
+   * mỗi giá trị một lời gửi (gợi ý sẵn, sửa tự do, không có đúng sai).
+   * Chỉ mở khi đã nghe đủ 4 chương VÀ đóng đủ 4 dấu trạm (nhóm chốt).
    * ==================================================================== */
-  const VALUES = {
-    thien: { name: 'Hướng Thiện', title: 'Táo Đức Thơm', desc: 'Sống thật lòng, biết nhận sai và gieo điều tử tế.' },
-    am: { name: 'Mái Ấm', title: 'Táo Gương Hòa', desc: 'Người giữ lửa, luôn là chỗ dựa để cả nhà hòa thuận.' },
-    nep: { name: 'Nếp Nhà', title: 'Táo Nếp Nhà', desc: 'Trân trọng cội nguồn, giữ lại những điều ông bà trao.' },
-    tot: { name: 'Tốt Lành', title: 'Táo Vượt Vũ Môn', desc: 'Mang khát vọng cá chép, dám vươn lên trong năm mới.' }
-  };
-  const QUESTIONS = [
-    { value: 'Tự soi xét và hướng thiện', q: 'Nhìn lại một năm, khoảnh khắc nào khiến bạn thấy mình tử tế hơn?',
-      a: [['thien', 'Khi mình nhận sai và sửa ngay'], ['am', 'Khi mình nhường một bước để nhà yên'], ['nep', 'Khi mình về thăm ông bà dù bận'], ['tot', 'Khi mình dám bắt đầu lại điều đã bỏ dở']] },
-    { value: 'Gìn giữ mái ấm và hòa thuận', q: 'Bữa cơm nhà bỗng căng thẳng vì một chuyện nhỏ. Bạn sẽ làm gì?',
-      a: [['thien', 'Xin lỗi trước, kể cả khi mình không sai hết'], ['am', 'Gắp cho mỗi người một miếng, đổi sang chuyện vui'], ['nep', 'Nhắc lại chuyện xưa từng khiến cả nhà cười'], ['tot', 'Rủ cả nhà cùng lên kế hoạch cho năm mới']] },
-    { value: 'Thành kính và trân trọng nếp nhà', q: 'Ngày 23 tháng Chạp, việc bạn muốn tự tay làm là gì?',
-      a: [['thien', 'Dọn gian bếp thật sạch, như dọn lại lòng mình'], ['am', 'Nấu một mâm cơm để cả nhà ngồi cùng'], ['nep', 'Cùng bố mẹ chuẩn bị mâm cúng ông Táo'], ['tot', 'Thả cá chép, gửi một điều ước cho năm mới']] },
-    { value: 'Khát vọng vươn lên', q: 'Điều bạn muốn mang theo sang năm mới là gì?',
-      a: [['thien', 'Sống thật hơn với chính mình'], ['am', 'Nhiều bữa cơm đủ mặt cả nhà hơn'], ['nep', 'Một nếp nhà để kể lại cho con cháu'], ['tot', 'Một mục tiêu đủ lớn để mình cố gắng']] }
+  const VALUES = [
+    { name: 'Hướng Thiện', icon: 'fire', lines: ['Năm nay nhà mình dám nhận lỗi và sửa sai.', 'Mỗi người tự nhìn lại mình để sống tử tế hơn.', 'Gieo thêm một việc tốt cho người quanh mình.'] },
+    { name: 'Mái Ấm', icon: 'bowl-food', lines: ['Bữa cơm nào cũng có người chờ nhau về.', 'Nói với nhau nhẹ nhàng hơn một chút.', 'Nhường nhau một bước để nhà luôn ấm.'] },
+    { name: 'Nếp Nhà', icon: 'flower-lotus', lines: ['Giữ nén hương ông bà vẫn thắp mỗi chiều cuối năm.', 'Kể cho em nhỏ nghe chuyện ngày xưa của nhà mình.', 'Cùng nhau chuẩn bị mâm cúng ông Táo.'] },
+    { name: 'Tốt Lành', icon: 'fish', lines: ['Mang ước mong cả nhà khỏe mạnh sang năm mới.', 'Dám bắt đầu lại một điều còn dang dở.', 'Như cá chép, gặp khó vẫn bơi tiếp.'] }
   ];
-  const ugc = { step: 0, answers: store.get('ugc_answers', {}), ratio: '1:1', photo: null, caption: 0 };
-  if (Object.keys(ugc.answers).length === 4) ugc.step = 4;
+  const letter = Object.assign({ picks: [0, 0, 0, 0], custom: ['', '', '', ''] }, store.get('letter', {}));
+  const ugc = { ratio: '1:1', caption: 0 };
+  const lineOf = (k) => (letter.custom[k] || '').trim() || VALUES[k].lines[letter.picks[k] % VALUES[k].lines.length];
+  const saveLetter = () => store.set('letter', letter);
 
-  function renderQuiz(animate) {
-    const box = $('#quiz');
-    if (ugc.step >= QUESTIONS.length) {
-      const r = result();
-      box.innerHTML = `
-        <div class="quiz-top"><span class="quiz-count">Hoàn thành</span><div class="quiz-dots" aria-hidden="true">${QUESTIONS.map(() => '<span class="on"></span>').join('')}</div></div>
-        <p class="quiz-value">Danh hiệu của bạn</p>
-        <p class="quiz-q">${r.v.title}</p>
-        <p style="color:var(--text-muted)">${r.v.desc} Thẻ đã sẵn sàng ở bên cạnh. Thêm ảnh nếu muốn, rồi tải về.</p>
-        <div class="quiz-nav"><button class="btn btn-ghost btn-sm" type="button" id="quiz-redo"><i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i> Làm lại</button></div>`;
-      $('#quiz-redo').addEventListener('click', () => { ugc.answers = {}; ugc.step = 0; store.set('ugc_answers', {}); renderQuiz(true); drawCard(); });
-    } else {
-      const Q = QUESTIONS[ugc.step];
-      box.innerHTML = `
-        <div class="quiz-top"><span class="quiz-count">Câu ${ugc.step + 1}/${QUESTIONS.length}</span>
-          <div class="quiz-dots" aria-hidden="true">${QUESTIONS.map((_, i) => `<span class="${i <= ugc.step ? 'on' : ''}"></span>`).join('')}</div></div>
-        <p class="quiz-value">${Q.value}</p>
-        <p class="quiz-q" id="quiz-q">${Q.q}</p>
-        <div class="options" role="radiogroup" aria-labelledby="quiz-q">${Q.a.map(([v, t]) => `<button class="option ${ugc.answers[ugc.step] === v ? 'is-right' : ''}" type="button" role="radio" aria-checked="${ugc.answers[ugc.step] === v}" data-v="${v}"><i class="ph ph-circle" aria-hidden="true"></i>${t}</button>`).join('')}</div>
-        <div class="quiz-nav">${ugc.step > 0 ? '<button class="btn btn-quiet" type="button" id="quiz-back"><i class="ph ph-arrow-left" aria-hidden="true"></i> Câu trước</button>' : '<span></span>'}</div>`;
-      $$('.option', box).forEach((b) => b.addEventListener('click', () => {
-        ugc.answers[ugc.step] = b.dataset.v;
-        store.set('ugc_answers', ugc.answers);
-        b.classList.add('is-right');
-        setTimeout(() => { ugc.step++; renderQuiz(true); if (ugc.step === 4) { drawCard(); track('frame_generated', { title: result().v.title }); } }, 220);
-      }));
-      const back = $('#quiz-back');
-      if (back) back.addEventListener('click', () => { ugc.step--; renderQuiz(true); });
+  // ---------- Ảnh khoảnh khắc: slot '1'..'4' cho 4 trạm, 'x1','x2' cho ảnh khác
+  const MOMENT_SLOTS = ['1', '2', '3', '4', 'x1', 'x2'];
+  let moments = store.get('moments', {});
+  const momentCount = () => MOMENT_SLOTS.filter((k) => moments[k]).length;
+  function saveMoments() {
+    try { localStorage.setItem('cnt_moments', JSON.stringify(moments)); return true; } catch (e) { return false; }
+  }
+  const momentInput = $('#moment-input');
+  function pickMoment(slot) { momentInput.dataset.slot = slot; momentInput.value = ''; momentInput.click(); }
+  momentInput.addEventListener('change', () => {
+    const file = momentInput.files && momentInput.files[0], slot = momentInput.dataset.slot;
+    if (!file || !slot) return;
+    if (!/^image\//.test(file.type)) { toast('Tệp này không phải ảnh. Bạn chọn ảnh JPG hoặc PNG nhé.', 'err'); return; }
+    if (file.size > 20 * 1024 * 1024) { toast('Ảnh lớn hơn 20MB. Bạn chọn ảnh nhỏ hơn giúp nhé.', 'err'); return; }
+    const img = new Image();
+    img.onload = () => {
+      // Nén về tối đa 900px, xử lý hoàn toàn trên máy, không gửi đi đâu
+      const sc = Math.min(1, 900 / Math.max(img.width, img.height));
+      const c = document.createElement('canvas'); c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(img.src);
+      const prev = moments[slot];
+      moments[slot] = c.toDataURL('image/jpeg', 0.78);
+      if (!saveMoments()) {
+        if (prev) moments[slot] = prev; else delete moments[slot];
+        toast('Bộ nhớ trình duyệt đã đầy. Xoá bớt một ảnh rồi thử lại nhé.', 'err');
+        return;
+      }
+      track('moment_upload', { slot, station: /^\d$/.test(slot) ? +slot : null });
+      toast(/^\d$/.test(slot) ? `Đã lưu khoảnh khắc ở ${STATIONS[+slot - 1].name}.` : 'Đã lưu ảnh khoảnh khắc.', 'ok', 'camera');
+      if (/^\d$/.test(slot) && pass) ppRefresh([PP.visa(+slot)]);
+      renderMoments(); drawCard();
+    };
+    img.onerror = () => toast('Chưa đọc được ảnh này. Thử ảnh khác nhé.', 'err');
+    img.src = URL.createObjectURL(file);
+  });
+  function removeMoment(slot) {
+    delete moments[slot]; saveMoments();
+    if (/^\d$/.test(slot) && pass) ppRefresh([PP.visa(+slot)]);
+    renderMoments(); drawCard();
+  }
+
+  // ---------- Điều kiện mở lá sớ
+  const gate = () => {
+    const ch = book.done.size, st = pass ? pass.stamps.length : 0;
+    return { ch, st, ok: ch === 4 && st === 4 };
+  };
+
+  let letterShown = false; // lần dựng đầu (lúc tải trang) không chạy hiệu ứng mở khoá
+  function renderLetter() {
+    const g = gate(), wasOpen = !$('#letter-open').hidden, first = !letterShown;
+    letterShown = true;
+    $('#letter-lock').hidden = g.ok;
+    $('#letter-open').hidden = !g.ok;
+    if (!g.ok) { renderLock(g); return; }
+    renderLetterEdit(); renderMoments(); drawCard();
+    if (!wasOpen) {
+      if (!store.get('letter_unlocked', false)) { store.set('letter_unlocked', true); track('letter_unlocked'); }
+      if (!first && hasGsap && !reduceMotion) gsap.from('#letter-open > *', { y: 24, opacity: 0, duration: 0.6, stagger: 0.12, ease: 'power3.out' });
     }
-    if (animate && hasGsap && !reduceMotion) gsap.from($$('#quiz > *'), { x: 24, opacity: 0, stagger: 0.05, duration: 0.35, ease: 'power2.out' });
   }
 
-  function result() {
-    const counts = { thien: 0, am: 0, nep: 0, tot: 0 };
-    Object.values(ugc.answers).forEach((v) => { counts[v]++; });
-    const total = Object.values(counts).reduce((a, b) => a + b, 0) || 1;
-    const order = ['thien', 'am', 'nep', 'tot'];
-    // Hòa điểm: ưu tiên giá trị trả lời ở câu cuối cùng (cảm xúc gần nhất)
-    let top = order[0];
-    order.forEach((k) => { if (counts[k] > counts[top]) top = k; });
-    const tied = order.filter((k) => counts[k] === counts[top]);
-    if (tied.length > 1 && ugc.answers[3] && tied.includes(ugc.answers[3])) top = ugc.answers[3];
-    return { top, v: VALUES[top], pct: Object.fromEntries(order.map((k) => [k, Math.round((counts[k] / total) * 100)])), done: Object.keys(ugc.answers).length === 4 };
+  function renderLock(g) {
+    const step = (done, title, sub, href, cta) => `
+      <li class="${done ? 'is-done' : ''}">
+        <i class="ph${done ? '-fill' : ''} ph-${done ? 'check-circle' : 'circle-dashed'}" aria-hidden="true"></i>
+        <span><strong>${title}</strong><small>${sub}</small></span>
+        ${done ? '' : `<a class="btn btn-ghost btn-sm" href="${href}">${cta}</a>`}
+      </li>`;
+    $('#letter-lock').innerHTML = `
+      <div class="lock-head">
+        <span class="lock-ico" aria-hidden="true"><i class="ph ph-lock-simple"></i></span>
+        <div><h3>Lá sớ mở khi bạn đi trọn hành trình</h3>
+        <p>Lá sớ ghi đủ bốn giá trị, nên cần bạn đi qua cả bốn: nghe bốn câu chuyện trong sách và đóng bốn dấu ở sự kiện.</p></div>
+      </div>
+      <ol class="lock-steps">
+        ${step(g.ch === 4, 'Nghe đủ 4 câu chuyện trong sách', `${g.ch}/4 chương`, '#doc-sach', 'Đọc tiếp')}
+        ${step(g.st === 4, 'Đóng đủ 4 dấu ở 4 trạm sự kiện', pass ? `${g.st}/4 dấu` : 'Chưa có thẻ thông hành', '#tram-trai-nghiem', pass ? 'Xem hộ chiếu' : 'Lấy thẻ thông hành')}
+      </ol>
+      <ul class="lock-values" aria-label="Tiến độ từng giá trị">
+        ${VALUES.map((v, k) => {
+          const read = book.done.has(k), stamped = !!(pass && pass.stamps.includes(k + 1));
+          return `<li class="${read && stamped ? 'is-done' : ''}"><i class="ph${read && stamped ? '-fill' : ''} ph-${v.icon}" aria-hidden="true"></i><span>${v.name}</span>
+            <small><i class="ph${read ? '-fill' : ''} ph-book-open" aria-label="${read ? 'Đã nghe chuyện' : 'Chưa nghe chuyện'}"></i><i class="ph${stamped ? '-fill' : ''} ph-seal-check" aria-label="${stamped ? 'Đã đóng dấu' : 'Chưa đóng dấu'}"></i></small></li>`;
+        }).join('')}
+      </ul>`;
   }
 
-  function renderDist(r) {
-    const el = $('#dist');
-    if (!r.done) { el.innerHTML = ''; return; }
-    el.innerHTML = Object.keys(VALUES).map((k) => `
-      <div class="dist-row ${k === r.top ? 'top' : ''}"><span>${VALUES[k].name}</span>
-        <span><span class="bar" style="display:block;width:${Math.max(r.pct[k], 2)}%"></span></span>
-        <span class="pct">${r.pct[k]}%</span></div>`).join('');
-    if (hasGsap && !reduceMotion) gsap.from('#dist .bar', { scaleX: 0, duration: 0.8, stagger: 0.08, ease: 'power3.out' });
+  function renderLetterEdit() {
+    $('#letter-edit').innerHTML = `
+      <h3>Bốn lời gửi ông Táo</h3>
+      <p class="help">Mỗi giá trị một câu. Giữ gợi ý sẵn hoặc viết bằng lời của nhà bạn.</p>
+      <div class="letter-rows">${VALUES.map((v, k) => `
+        <div class="letter-row">
+          <label for="letter-${k}"><i class="ph-fill ph-${v.icon}" aria-hidden="true"></i>${v.name}</label>
+          <textarea class="input" id="letter-${k}" rows="2" maxlength="80" data-k="${k}">${esc(lineOf(k))}</textarea>
+          <button class="linklike" type="button" data-suggest="${k}"><i class="ph ph-shuffle" aria-hidden="true"></i> Gợi ý khác</button>
+        </div>`).join('')}
+      </div>`;
+    let raf = 0;
+    $$('#letter-edit textarea').forEach((t) => t.addEventListener('input', () => {
+      letter.custom[+t.dataset.k] = t.value;
+      saveLetter();
+      cancelAnimationFrame(raf); raf = requestAnimationFrame(drawCard);
+    }));
+    $$('#letter-edit [data-suggest]').forEach((b) => b.addEventListener('click', () => {
+      const k = +b.dataset.suggest;
+      letter.picks[k] = (letter.picks[k] + 1) % VALUES[k].lines.length;
+      letter.custom[k] = '';
+      saveLetter();
+      $('#letter-' + k).value = lineOf(k);
+      drawCard();
+    }));
   }
 
+  function renderMoments() {
+    const box = $('#moments');
+    if (!box) return;
+    box.innerHTML = MOMENT_SLOTS.map((slot) => {
+      const st = /^\d$/.test(slot) ? STATIONS[+slot - 1] : null;
+      const label = st ? st.name.replace('Trạm ', '') : 'Ảnh khác';
+      const src = moments[slot];
+      return `<div class="moment ${src ? 'has-photo' : ''}">
+        ${src
+          ? `<img src="${src}" alt="Khoảnh khắc ${label}"><button class="moment-del" type="button" data-del="${slot}" aria-label="Xoá ảnh ${label}"><i class="ph ph-x" aria-hidden="true"></i></button>`
+          : `<button class="moment-add" type="button" data-add="${slot}" aria-label="Thêm ảnh ${label}"><i class="ph ph-camera-plus" aria-hidden="true"></i></button>`}
+        <span class="moment-label">${label}</span>
+      </div>`;
+    }).join('');
+    $$('[data-add]', box).forEach((b) => b.addEventListener('click', () => pickMoment(b.dataset.add)));
+    $$('[data-del]', box).forEach((b) => b.addEventListener('click', () => removeMoment(b.dataset.del)));
+  }
+
+  // ---------- Vẽ lá sớ (canvas) theo phong cách sách cổ: giấy dó, mực son, chữ có chân
+  const loadImg = (src) => new Promise((res) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src; });
+  let drawing = 0;
   async function drawCard() {
-    const r = result();
-    const cv = $('#ugc-canvas'), ctx = cv.getContext('2d');
-    const W = 1080, H = ugc.ratio === '9:16' ? 1920 : 1080;
+    const ticket = ++drawing;
+    const cv = $('#ugc-canvas');
+    if (!cv || $('#letter-open').hidden) return;
+    const W = 1080, H = ugc.ratio === '9:16' ? 1920 : 1080, tall = H > W;
+    try {
+      await Promise.all([document.fonts.load('700 60px "Playfair Display"'), document.fonts.load('italic 400 40px "EB Garamond"'), document.fonts.load('600 30px "Be Vietnam Pro"')]);
+    } catch (e) { /* dùng font dự phòng */ }
+    const photos = (await Promise.all(MOMENT_SLOTS.filter((k) => moments[k]).slice(0, 4).map((k) => loadImg(moments[k])))).filter(Boolean);
+    const paper = await loadImg('images/giay-cu.jpg');
+    if (ticket !== drawing) return; // đã có lần vẽ mới hơn
     cv.width = W; cv.height = H;
-    try { await document.fonts.load('800 80px "Be Vietnam Pro"'); await document.fonts.load('500 40px "Be Vietnam Pro"'); } catch (e) { /* dùng font dự phòng */ }
-    const F = (w, s) => `${w} ${s}px "Be Vietnam Pro", system-ui, sans-serif`;
+    const ctx = cv.getContext('2d');
+    const serif = (w, sz, it) => `${it ? 'italic ' : ''}${w} ${sz}px "EB Garamond", Georgia, serif`;
+    const disp = (w, sz) => `${w} ${sz}px "Playfair Display", Georgia, serif`;
+    const sans = (w, sz) => `${w} ${sz}px "Be Vietnam Pro", system-ui, sans-serif`;
+    const RED = '#9b2a17', INK = '#3a2614';
 
-    // Nền đêm + quầng đèn trời
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, '#2a140a'); g.addColorStop(1, '#120b07');
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    const seed = (pass && pass.id) || 'TAO';
-    let s = 0; for (const ch of seed) s = (s * 31 + ch.charCodeAt(0)) % 9973;
-    const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
-    for (let i = 0; i < 26; i++) {
-      const x = rnd() * W, y = rnd() * H * 0.9, rad = 4 + rnd() * 10;
-      const rg = ctx.createRadialGradient(x, y, 0, x, y, rad * 6);
-      rg.addColorStop(0, 'rgba(255,110,40,.55)'); rg.addColorStop(1, 'rgba(255,110,40,0)');
-      ctx.fillStyle = rg; ctx.fillRect(x - rad * 6, y - rad * 6, rad * 12, rad * 12);
-      ctx.fillStyle = '#ff5a2a'; ctx.fillRect(x - rad * 0.6, y - rad, rad * 1.2, rad * 1.6);
-    }
-    ctx.strokeStyle = 'rgba(255,226,196,.25)'; ctx.lineWidth = 3; ctx.strokeRect(40, 40, W - 80, H - 80);
+    // Giấy cũ + viền son kép
+    if (paper) ctx.drawImage(paper, 0, 0, W, H); else { ctx.fillStyle = '#efdfbd'; ctx.fillRect(0, 0, W, H); }
+    const vg = ctx.createRadialGradient(W / 2, H / 2, W * 0.35, W / 2, H / 2, W * 0.85);
+    vg.addColorStop(0, 'rgba(120,70,25,0)'); vg.addColorStop(1, 'rgba(120,70,25,.28)');
+    ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = RED; ctx.lineWidth = 6; ctx.strokeRect(44, 44, W - 88, H - 88);
+    ctx.lineWidth = 2; ctx.strokeRect(60, 60, W - 120, H - 120);
 
-    const tall = H > W;
-    let y = tall ? 220 : 120;
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#ff8a6b'; ctx.font = F(600, 32);
-    ctx.fillText('CHUYỆN NHÀ TÁO  ·  YEAR IN VALUES', W / 2, y);
+    ctx.textAlign = 'center'; ctx.fillStyle = RED;
+    let y = tall ? 210 : 128;
+    ctx.font = sans(700, 26); ctx.fillText('CHUYỆN NHÀ TÁO  ·  ĐÊM 23 THÁNG CHẠP', W / 2, y);
+    y += tall ? 100 : 74;
+    ctx.fillStyle = '#3b1f0e'; ctx.font = disp(800, tall ? 92 : 70); ctx.fillText('Lá sớ gửi Táo', W / 2, y);
+    y += tall ? 66 : 48;
+    ctx.fillStyle = INK; ctx.font = serif(400, tall ? 40 : 34, true);
+    ctx.fillText(`Nhà của ${(pass && pass.nickname) || 'người giữ lửa'} kính gửi`, W / 2, y);
 
-    // Ảnh người dùng (tròn) hoặc dấu son
-    const ph = tall ? 420 : 300;
-    const cy = y + 70 + ph / 2;
-    ctx.save(); ctx.beginPath(); ctx.arc(W / 2, cy, ph / 2, 0, Math.PI * 2); ctx.clip();
-    if (ugc.photo) {
-      const im = ugc.photo, sc = Math.max(ph / im.width, ph / im.height);
-      ctx.drawImage(im, W / 2 - (im.width * sc) / 2, cy - (im.height * sc) / 2, im.width * sc, im.height * sc);
-    } else {
-      ctx.fillStyle = '#d63b20'; ctx.fillRect(W / 2 - ph / 2, cy - ph / 2, ph, ph);
-      ctx.fillStyle = '#fff'; ctx.font = F(800, ph * 0.3); ctx.textBaseline = 'middle'; ctx.fillText('Táo', W / 2, cy + 6); ctx.textBaseline = 'alphabetic';
-    }
-    ctx.restore();
-    ctx.strokeStyle = '#e9b44c'; ctx.lineWidth = 8; ctx.beginPath(); ctx.arc(W / 2, cy, ph / 2 + 10, 0, Math.PI * 2); ctx.stroke();
-
-    y = cy + ph / 2 + (tall ? 130 : 90);
-    ctx.fillStyle = '#c4b3a0'; ctx.font = F(500, 36);
-    ctx.fillText((pass && pass.nickname) || 'Người giữ lửa', W / 2, y);
-    y += tall ? 110 : 84;
-    ctx.fillStyle = '#f4ece1'; ctx.font = F(800, tall ? 96 : 76);
-    ctx.fillText(r.done ? r.v.title : 'Vị Táo của bạn', W / 2, y);
-    y += tall ? 70 : 56;
-    ctx.fillStyle = '#c4b3a0'; ctx.font = F(500, 32);
-    wrap(ctx, r.done ? r.v.desc : 'Trả lời bốn câu hỏi để mở danh hiệu.', W / 2, y, W - 240, 44);
-
-    if (r.done && tall) {
-      // Biểu đồ phân bố 4 giá trị (chỉ khổ story có đủ chỗ)
-      let by = y + 150;
+    // Bốn giá trị, mỗi giá trị một lời
+    const rowH = tall ? 170 : 116, left = 130, textX = 250;
+    y += tall ? 64 : 34;
+    VALUES.forEach((v, k) => {
+      const cy = y + rowH / 2;
+      ctx.fillStyle = RED; ctx.beginPath(); ctx.arc(left + 30, cy, tall ? 42 : 34, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fbe9c4'; ctx.font = disp(700, tall ? 40 : 32); ctx.textBaseline = 'middle';
+      ctx.fillText(['I', 'II', 'III', 'IV'][k], left + 30, cy + 2); ctx.textBaseline = 'alphabetic';
       ctx.textAlign = 'left';
-      Object.keys(VALUES).forEach((k) => {
-        ctx.fillStyle = '#f4ece1'; ctx.font = F(600, 34); ctx.fillText(VALUES[k].name, 160, by);
-        ctx.fillStyle = k === r.top ? '#e9b44c' : '#ff8a6b';
-        ctx.fillRect(420, by - 22, Math.max(8, (W - 640) * r.pct[k] / 100), 16);
-        ctx.textAlign = 'right'; ctx.fillStyle = '#f4ece1'; ctx.fillText(r.pct[k] + '%', W - 160, by); ctx.textAlign = 'left';
-        by += 76;
-      });
+      ctx.fillStyle = RED; ctx.font = sans(700, tall ? 30 : 25); ctx.fillText(v.name.toUpperCase(), textX, cy - (tall ? 22 : 16));
+      ctx.fillStyle = INK; ctx.font = serif(400, tall ? 40 : 33, true);
+      wrap(ctx, lineOf(k), textX, cy + (tall ? 30 : 22), W - textX - 120, tall ? 46 : 38, 2);
       ctx.textAlign = 'center';
-    }
-    ctx.fillStyle = '#9c8a78'; ctx.font = F(600, 30);
-    ctx.fillText('#ChuyenNhaTao  #YearInValues', W / 2, H - 100);
-
-    $('#result-title').textContent = r.done ? r.v.title : 'Thẻ Vị Táo của bạn';
-    $('#result-desc').textContent = r.done ? r.v.desc : 'Trả lời bốn câu hỏi để xem danh hiệu.';
-    renderDist(r);
-    renderCaptions(r);
-  }
-  function wrap(ctx, text, x, y, maxW, lh) {
-    const words = text.split(' '); let line = '';
-    words.forEach((w) => {
-      const t = line ? line + ' ' + w : w;
-      if (ctx.measureText(t).width > maxW && line) { ctx.fillText(line, x, y); line = w; y += lh; } else line = t;
+      if (k < 3) { ctx.strokeStyle = 'rgba(110,62,25,.3)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(textX, y + rowH); ctx.lineTo(W - 120, y + rowH); ctx.stroke(); }
+      y += rowH;
     });
+
+    // Khoảnh khắc: ảnh dán kiểu polaroid
+    if (photos.length) {
+      const n = photos.length, size = tall ? 240 : 124, gap = tall ? 34 : 30;
+      const cols = tall ? Math.min(n, 2) : n, rows = Math.ceil(n / cols);
+      const totalW = cols * size + (cols - 1) * gap;
+      const py = y + (tall ? 56 : 26);
+      photos.forEach((im, k) => {
+        const c = k % cols, r = Math.floor(k / cols);
+        const x = W / 2 - totalW / 2 + c * (size + gap), yy = py + r * (size + gap + 30);
+        ctx.save();
+        ctx.translate(x + size / 2, yy + size / 2); ctx.rotate(((k % 2 ? 1 : -1) * (2 + k)) * Math.PI / 180);
+        ctx.shadowColor = 'rgba(60,30,10,.35)'; ctx.shadowBlur = 14; ctx.shadowOffsetY = 6;
+        ctx.fillStyle = '#fbf6ea'; ctx.fillRect(-size / 2 - 10, -size / 2 - 10, size + 20, size + 40);
+        ctx.shadowColor = 'transparent';
+        const sc = Math.max(size / im.width, size / im.height);
+        ctx.beginPath(); ctx.rect(-size / 2, -size / 2, size, size); ctx.clip();
+        ctx.drawImage(im, -im.width * sc / 2, -im.height * sc / 2, im.width * sc, im.height * sc);
+        ctx.restore();
+      });
+      y = py + rows * (size + gap + 30);
+    }
+
+    ctx.fillStyle = RED; ctx.font = sans(700, 26);
+    ctx.fillText('#ChuyenNhaTao  #YearInValues', W / 2, H - (tall ? 96 : 76));
+    renderCaptions();
+  }
+  function wrap(ctx, text, x, y, maxW, lh, maxLines = 99) {
+    const words = text.split(' '); let line = '', n = 0;
+    for (const w of words) {
+      const t = line ? line + ' ' + w : w;
+      if (ctx.measureText(t).width > maxW && line) {
+        if (++n >= maxLines) { ctx.fillText(line + '…', x, y); return; }
+        ctx.fillText(line, x, y); line = w; y += lh;
+      } else line = t;
+    }
     ctx.fillText(line, x, y);
   }
 
-  function captionsFor(r) {
-    const t = r.done ? r.v.title : 'một vị Táo';
+  function captionsFor() {
+    const name = (pass && pass.nickname) || 'nhà mình';
     return [
-      `Bếp đỏ giữ lửa, nếp nhà đoàn viên. Năm nay mình là "${t}". Còn bạn là vị Táo nào? #ChuyenNhaTao #YearInValues`,
-      `23 tháng Chạp, tiễn ông Táo về trời và nhìn lại một năm. Danh hiệu của mình: ${t}. #ChuyenNhaTao #YearInValues`,
-      `Một năm của mình gói trong bốn giá trị: hướng thiện, mái ấm, nếp nhà, tốt lành. Mình là ${t}. #ChuyenNhaTao #YearInValues`
+      `Lá sớ năm nay của nhà ${name}: hướng thiện, mái ấm, nếp nhà, tốt lành. Nhờ ông Táo mang lên trời giúp nhé! #ChuyenNhaTao #YearInValues`,
+      `Bếp đỏ giữ lửa, nếp nhà đoàn viên. Một năm của nhà mình gói trong bốn giá trị. Còn lá sớ nhà bạn viết gì? #ChuyenNhaTao #YearInValues`,
+      `Nghe đủ bốn câu chuyện, đi đủ bốn trạm, và đây là lá sớ nhà mình gửi ông Táo. #ChuyenNhaTao #YearInValues`
     ];
   }
-  function renderCaptions(r) {
-    $('#captions').innerHTML = captionsFor(r).map((c, i) => `<button class="caption" type="button" data-c="${i}"><i class="ph ph-copy" aria-hidden="true"></i><span>${esc(c)}</span></button>`).join('');
+  function renderCaptions() {
+    $('#captions').innerHTML = captionsFor().map((c, i) => `<button class="caption" type="button" data-c="${i}"><i class="ph ph-copy" aria-hidden="true"></i><span>${esc(c)}</span></button>`).join('');
     $$('#captions .caption').forEach((b) => b.addEventListener('click', () => copyCaption(+b.dataset.c)));
   }
   async function copyCaption(i) {
-    const text = captionsFor(result())[i];
+    const text = captionsFor()[i];
     ugc.caption = i;
     try { await navigator.clipboard.writeText(text); toast('Đã sao chép caption. Dán vào bài đăng là xong.', 'ok', 'copy'); }
     catch (e) { toast('Chưa sao chép được tự động. Bạn giữ và chọn đoạn caption để sao chép nhé.', 'info'); }
     track('copy_caption', { version: i + 1 });
   }
-
-  $('#ugc-photo').addEventListener('change', (e) => {
-    const file = e.target.files && e.target.files[0];
-    const status = $('#ugc-photo-status');
-    if (!file) return;
-    if (!/^image\//.test(file.type)) { toast('Tệp này không phải ảnh. Bạn chọn ảnh JPG hoặc PNG nhé.', 'err'); return; }
-    if (file.size > 20 * 1024 * 1024) { toast('Ảnh lớn hơn 20MB. Bạn chọn ảnh nhỏ hơn giúp nhé.', 'err'); return; }
-    status.textContent = 'Đang xử lý ảnh…';
-    const img = new Image();
-    img.onload = () => {
-      // Nén về tối đa 1200px, xử lý hoàn toàn trên máy
-      const sc = Math.min(1, 1200 / Math.max(img.width, img.height));
-      const c = document.createElement('canvas'); c.width = img.width * sc; c.height = img.height * sc;
-      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-      const out = new Image();
-      out.onload = () => { ugc.photo = out; drawCard(); status.textContent = 'Đã thêm ảnh. Chọn ảnh khác để thay.'; URL.revokeObjectURL(img.src); };
-      out.src = c.toDataURL('image/jpeg', 0.9);
-    };
-    img.onerror = () => { status.textContent = 'Chưa đọc được ảnh này. Thử ảnh khác nhé.'; toast('Chưa đọc được ảnh này. Thử ảnh khác nhé.', 'err'); };
-    img.src = URL.createObjectURL(file);
-  });
 
   $$('#ratio-seg button').forEach((b) => b.addEventListener('click', () => {
     ugc.ratio = b.dataset.ratio;
@@ -1367,28 +1574,27 @@
 
   function cardBlob() { return new Promise((res) => $('#ugc-canvas').toBlob(res, 'image/png')); }
   $('#btn-download').addEventListener('click', async () => {
-    const r = result();
     const blob = await cardBlob();
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `ChuyenNhaTao-${(r.done ? r.v.title : 'the-vi-tao').replace(/\s+/g, '-')}-${ugc.ratio.replace(':', 'x')}.png`;
+    a.download = `ChuyenNhaTao-la-so-${ugc.ratio.replace(':', 'x')}.png`;
     a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-    track('download', { ratio: ugc.ratio });
+    track('download', { ratio: ugc.ratio, photos: momentCount() });
   });
   async function share(network) {
     track('share_click', { network });
-    const text = captionsFor(result())[ugc.caption];
+    const text = captionsFor()[ugc.caption];
     const blob = await cardBlob();
-    const file = new File([blob], 'the-vi-tao.png', { type: 'image/png' });
+    const file = new File([blob], 'la-so-gui-tao.png', { type: 'image/png' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       try { await navigator.share({ files: [file], text }); return; } catch (e) { if (e.name === 'AbortError') return; }
     }
     try { await navigator.clipboard.writeText(text); } catch (e) { /* bỏ qua */ }
     if (network === 'facebook') {
       window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(location.origin + location.pathname), '_blank', 'noopener,width=640,height=560');
-      toast('Caption đã được sao chép. Tải thẻ về để đính kèm ảnh vào bài đăng.', 'info', 'facebook-logo');
+      toast('Caption đã được sao chép. Tải lá sớ về để đính kèm ảnh vào bài đăng.', 'info', 'facebook-logo');
     } else {
-      toast('Caption đã được sao chép. Tải thẻ về, mở TikTok và đăng ảnh kèm caption nhé.', 'info', 'tiktok-logo');
+      toast('Caption đã được sao chép. Tải lá sớ về, mở TikTok và đăng ảnh kèm caption nhé.', 'info', 'tiktok-logo');
     }
   }
   $('#btn-share-fb').addEventListener('click', () => share('facebook'));
@@ -1399,7 +1605,7 @@
    * ==================================================================== */
   function renderAllChapters() {
     CHAPTERS.forEach((c, i) => {
-      if (book.done.has(i)) renderGameDone(i); else renderGame(i);
+      renderListen(i, book.done.has(i));
       renderBadgePage(i);
     });
     renderBadges();
@@ -1408,12 +1614,11 @@
   renderAllChapters();
   initFlipbook();
   renderTicket();
-  renderQuiz();
-  drawCard();
+  renderLetter();
   requestAnimationFrame(() => moveIndicator(false));
 
   document.addEventListener('copy', () => {}, { passive: true });
-  window.addEventListener('pagehide', stopVoice);
+  window.addEventListener('pagehide', () => { stopVoice(); stopTale(); });
 
   /* ======================================================================
    * HERO fallback (không có WebGL)
@@ -1434,7 +1639,7 @@
     start: 40, end: 'max',
     onToggle: (self) => $('#site-header').classList.toggle('is-solid', self.isActive || menu.classList.contains('is-open'))
   });
-  ['doc-sach', 'tram-trai-nghiem', 'the-vi-tao'].forEach((id) => {
+  ['doc-sach', 'tram-trai-nghiem', 'la-so'].forEach((id) => {
     ScrollTrigger.create({
       trigger: '#' + id, start: 'top 50%', end: 'bottom 50%',
       onToggle: (self) => $$(`.nav-links a[href="#${id}"]`).forEach((a) => a.classList.toggle('is-active', self.isActive))
