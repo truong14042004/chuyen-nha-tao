@@ -71,7 +71,7 @@
 | S02 | Storybook + 4 chương | `section#doc-sach`: quyển sách lật trang `#flipbook` (StPageFlip) + `#chapter-tabs` | ✅ |
 | S03 | Tổng kết huy hiệu + CTA sự kiện | Trang 19–20 của quyển sách (`#badges`) | ✅ ngày/địa điểm "Sắp công bố" |
 | S04 | Đăng ký / consent / Virtual ID | `#register`, `form#form-register` | ✅ (mô phỏng, chưa có backend) |
-| S05 | Passport 4 trạm | `#ticket-slot` | ✅ (mô phỏng) |
+| S05 | Passport 4 trạm | `#ticket-slot`: cuốn hộ chiếu lật trang, 4 trang visa đóng dấu | ✅ (mô phỏng) |
 | S06 | Check-out & quà | `#checkout` | ✅ (mô phỏng) |
 | S07 | UGC: câu hỏi giá trị + tạo khung | `section#the-vi-tao` (`#quiz`, `#ugc-canvas`) | ✅ |
 | S08 | Chia sẻ & caption mẫu | `#captions`, `#btn-share-fb`, `#btn-share-tt` | ✅ thể lệ chờ chốt |
@@ -407,6 +407,13 @@ Trên desktop các trang ghép thành trang đôi (tranh | nội dung, mini-game
 | `renderCheckout()` | Mã quà `QUA-XXXX` một lần, nút "Nhân sự xác nhận", lời mời UGC |
 | `#btn-restore` | Nhập lại mã thẻ (A7), hiện chỉ báo vì chưa có máy chủ |
 
+### 11.4b Hộ chiếu thông hành (lật trang)
+Sau khi tạo thẻ, `#ticket-slot` dựng một cuốn hộ chiếu StPageFlip 10 trang (`PP`): bìa da xanh ngọc ép nhũ, trang thông tin (ảnh chữ cái đầu, tên, mã thẻ, ngày cấp, QR, dòng MRZ), trang hành trình 4 trạm, **4 trang visa** (mỗi trạm một trang), trang hoàn thành, trang ghi chú, bìa sau. Trang giấy chống giả có hoa văn guilloche và hình mờ chữ "Táo".
+
+- **Con dấu visa** do `stampSVG(id, ts)` vẽ bằng SVG: tròn đỏ (Hướng Thiện), chữ nhật xanh dương (Mái Ấm), bát giác xanh lá (Nếp Nhà), bầu dục tím (Tốt Lành); có ngày giờ đóng, nét mực loang/sờn bằng bộ lọc `feTurbulence` + `feDisplacementMap`, xoay lệch như dấu thật. Đủ 4 dấu thêm dấu vàng `goldStampSVG`.
+- **Đóng dấu** (`addStamp`): lưu `pass.stampedAt[id]`, cập nhật các trang (`ppRefresh`), lật tới trang visa của trạm (`ppGo`), rồi `playStamp` cho dấu "đập" xuống (scale 2.6 → 1, mờ → rõ, rung nhẹ trang, tiếng dấu). Đủ 4/4 thì tự lật sang trang hoàn thành. Bấm đóng dấu liên tiếp sẽ huỷ các bước còn chờ của lần trước (`pp.timers`).
+- Trang đang mở lưu ở `cnt_pp_page`. Ô nhập mã trạm nằm ngay dưới cuốn hộ chiếu.
+
 ### 11.5 Thẻ Vị Táo (S07–S08)
 | Thành phần | Mô tả |
 |---|---|
@@ -461,6 +468,7 @@ Bản hiện tại lưu mọi thứ trong **`localStorage` của trình duyệt*
 |---|---|
 | `cnt_chapter` | Chương đang đọc (0–3) |
 | `cnt_page` | Trang sách đang mở (0–21), mở lại đúng trang |
+| `cnt_pp_page` | Trang hộ chiếu đang mở (0–9) |
 | `cnt_chapters_done` | Mảng chương đã hoàn thành |
 | `cnt_wish` | Lời nguyện chương 4 `{ choice, note }` |
 | `cnt_pass` | Thẻ thông hành (xem dưới) |
@@ -479,6 +487,8 @@ Bản hiện tại lưu mọi thứ trong **`localStorage` của trình duyệt*
   email: null,             // chỉ lưu khi consent = true
   consent: false,
   stamps: [1, 2],          // id các trạm đã đóng dấu
+  stampedAt: { 1: 1791..., 2: 1791... }, // thời điểm đóng từng dấu (in lên con dấu)
+  issuedAt: 1791...,       // ngày cấp hộ chiếu
   giftCode: 'QUA-7Q48',
   claimed: false,          // đã nhận quà
   synced: true             // false nếu tạo khi mất mạng

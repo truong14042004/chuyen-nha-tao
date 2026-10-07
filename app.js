@@ -106,6 +106,7 @@
       return this.on;
     },
     flip() { if (this.ctx && this.on) this.noise(0.18, 900, 0.35); },
+    stamp() { if (this.ctx && this.on) { this.noise(0.09, 160, 1.1); this.noise(0.05, 1200, 0.25); } },
     chime() {
       if (!this.ctx || !this.on) return;
       const c = this.ctx, o = c.createOscillator(), g = c.createGain();
@@ -772,63 +773,292 @@
     toast('Bản thử nghiệm chưa kết nối máy chủ nên chưa tải lại được thẻ. Nhân sự tại bàn check-in sẽ hỗ trợ bạn.', 'info', 'lifebuoy');
   });
 
+  // ----------------------------------------------------------------------
+  // Hộ chiếu thông hành (lật trang, StPageFlip). 10 trang:
+  //   0 bìa · 1 thông tin chủ thẻ + QR · 2 hành trình 4 trạm
+  //   3–6 trang visa của từng trạm · 7 hoàn thành · 8 ghi chú · 9 bìa sau
+  // Đóng dấu ở trạm nào → hộ chiếu lật tới trang visa của trạm đó, dấu mực đóng xuống.
+  // ----------------------------------------------------------------------
+  const PP = { cover: 0, data: 1, guide: 2, visa: (id) => 2 + id, done: 7, notes: 8, back: 9, count: 10 };
+  const ROMAN_ST = ['I', 'II', 'III', 'IV'];
+  const STAMP_STYLE = {
+    1: { shape: 'circle', ink: '#b3261e', short: 'HƯỚNG THIỆN', rot: -13, x: 14, y: 6 },
+    2: { shape: 'rect', ink: '#1f4e8c', short: 'MÁI ẤM', rot: 7, x: -10, y: 18 },
+    3: { shape: 'octagon', ink: '#2e6b3f', short: 'NẾP NHÀ', rot: -5, x: 6, y: -6 },
+    4: { shape: 'oval', ink: '#6a2c8a', short: 'TỐT LÀNH', rot: 11, x: -8, y: 10 }
+  };
+  const VISA_TEXT = {
+    1: 'Tự soi xét và hướng thiện. Nhìn lại một năm bằng sự thật lòng.',
+    2: 'Gìn giữ mái ấm và hòa thuận. Giữ lửa bằng lắng nghe và bao dung.',
+    3: 'Thành kính và trân trọng nếp nhà. Nhớ điều ông bà trao lại.',
+    4: 'Khát vọng vươn lên. Mang điều tốt lành đi tiếp sang năm mới.'
+  };
+  const pp = { flip: null, pageEls: [], timers: [] };
+
+  const fmtDate = (ts, withTime) => {
+    const d = new Date(ts || Date.now());
+    const p = (n) => String(n).padStart(2, '0');
+    return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()}` + (withTime ? ` ${p(d.getHours())}:${p(d.getMinutes())}` : '');
+  };
+
+  // Con dấu visa bằng SVG: mỗi trạm một hình, một màu mực, nét mực loang và sờn
+  function stampSVG(id, ts) {
+    const s = STAMP_STYLE[id], ink = s.ink, f = `ink-${id}-${(ts || 0) % 1000}`;
+    const date = fmtDate(ts), roman = ROMAN_ST[id - 1];
+    const T = (x, y, size, text, w = 800, ls = 1.5) => `<text x="${x}" y="${y}" text-anchor="middle" font-family="Be Vietnam Pro, Arial, sans-serif" font-size="${size}" font-weight="${w}" letter-spacing="${ls}" fill="${ink}">${text}</text>`;
+    let body = '';
+    if (s.shape === 'circle') {
+      body = `<circle cx="100" cy="100" r="84" fill="none" stroke="${ink}" stroke-width="5"/>
+        <circle cx="100" cy="100" r="70" fill="none" stroke="${ink}" stroke-width="1.6"/>
+        <path id="arc-${f}" d="M 34 100 A 66 66 0 0 1 166 100" fill="none"/>
+        <text font-family="Be Vietnam Pro, Arial, sans-serif" font-size="11" font-weight="700" letter-spacing="1.8" fill="${ink}"><textPath href="#arc-${f}" startOffset="50%" text-anchor="middle">CHUYỆN NHÀ TÁO · TRẠM ${roman}</textPath></text>
+        ${T(100, 104, 15.5, s.short, 800, 0.4)}${T(100, 125, 12.5, date, 600, 1)}${T(100, 146, 9.5, '★ ĐÃ ĐÓNG DẤU ★', 700, 1.2)}`;
+    } else if (s.shape === 'rect') {
+      body = `<rect x="14" y="40" width="172" height="120" rx="6" fill="none" stroke="${ink}" stroke-width="5"/>
+        <rect x="24" y="50" width="152" height="100" rx="3" fill="none" stroke="${ink}" stroke-width="1.6"/>
+        ${T(100, 72, 12, 'VISA · TRẠM ' + roman, 700, 2.5)}${T(100, 104, 24, s.short)}
+        <line x1="40" y1="114" x2="160" y2="114" stroke="${ink}" stroke-width="1.4"/>${T(100, 132, 13, date, 600, 1)}${T(100, 146, 9, 'CHUYỆN NHÀ TÁO', 700, 2)}`;
+    } else if (s.shape === 'octagon') {
+      body = `<polygon points="66,20 134,20 180,66 180,134 134,180 66,180 20,134 20,66" fill="none" stroke="${ink}" stroke-width="5"/>
+        <polygon points="72,32 128,32 168,72 168,128 128,168 72,168 32,128 32,72" fill="none" stroke="${ink}" stroke-width="1.6"/>
+        ${T(100, 64, 12, 'TRẠM ' + roman, 700, 3)}${T(100, 102, 22, s.short)}${T(100, 124, 13, date, 600, 1)}${T(100, 146, 10, 'ĐÃ ĐÓNG DẤU', 700, 2)}`;
+    } else {
+      body = `<ellipse cx="100" cy="100" rx="88" ry="62" fill="none" stroke="${ink}" stroke-width="5"/>
+        <ellipse cx="100" cy="100" rx="76" ry="50" fill="none" stroke="${ink}" stroke-width="1.6"/>
+        ${T(100, 76, 11, 'CHUYỆN NHÀ TÁO · ' + roman, 700, 2)}${T(100, 104, 22, s.short)}${T(100, 125, 13, date, 600, 1)}`;
+    }
+    return `<svg class="pp-stamp-svg" viewBox="0 0 200 200" role="img" aria-label="Dấu ${s.short}, ngày ${date}" xmlns="http://www.w3.org/2000/svg">
+      <defs><filter id="${f}" x="-10%" y="-10%" width="120%" height="120%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.95" numOctaves="2" seed="${id * 7}" result="t"/>
+        <feColorMatrix in="t" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.4 1.75" result="holes"/>
+        <feComposite in="SourceGraphic" in2="holes" operator="in" result="worn"/>
+        <feDisplacementMap in="worn" in2="t" scale="2.2" xChannelSelector="R" yChannelSelector="G"/>
+      </filter></defs>
+      <g filter="url(#${f})" opacity=".88">${body}</g></svg>`;
+  }
+
+  function goldStampSVG(ts) {
+    const ink = '#a87b16';
+    return `<svg class="pp-stamp-svg" viewBox="0 0 200 200" role="img" aria-label="Dấu hoàn thành bốn trạm" xmlns="http://www.w3.org/2000/svg">
+      <defs><filter id="ink-gold"><feTurbulence type="fractalNoise" baseFrequency="1" numOctaves="2" seed="11" result="t"/>
+      <feColorMatrix in="t" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.2 1.8" result="h"/><feComposite in="SourceGraphic" in2="h" operator="in"/></filter></defs>
+      <g filter="url(#ink-gold)">
+        <circle cx="100" cy="100" r="88" fill="none" stroke="${ink}" stroke-width="4" stroke-dasharray="2 4"/>
+        <circle cx="100" cy="100" r="78" fill="none" stroke="${ink}" stroke-width="5"/>
+        <circle cx="100" cy="100" r="66" fill="none" stroke="${ink}" stroke-width="1.6"/>
+        <text x="100" y="84" text-anchor="middle" font-family="Be Vietnam Pro, Arial" font-size="12" font-weight="700" letter-spacing="2.5" fill="${ink}">HOÀN THÀNH</text>
+        <text x="100" y="116" text-anchor="middle" font-family="Be Vietnam Pro, Arial" font-size="32" font-weight="800" fill="${ink}">4/4</text>
+        <text x="100" y="138" text-anchor="middle" font-family="Be Vietnam Pro, Arial" font-size="12" font-weight="600" fill="${ink}">${fmtDate(ts)}</text>
+      </g></svg>`;
+  }
+
+  const stampedAt = (id) => (pass.stampedAt && pass.stampedAt[id]) || null;
+
+  function ppHead(left, right) { return `<div class="pp-head"><span>${left}</span><span>${right}</span></div>`; }
+
+  function ppPageHTML(n) {
+    const total = pass.stamps.length;
+    if (n === PP.cover) return `
+      <div class="pp-cover">
+        <p class="pp-cover-top">CHUYỆN NHÀ TÁO</p>
+        <div class="pp-emblem" aria-hidden="true">
+          <svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="54" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="60" cy="60" r="46" fill="none" stroke="currentColor" stroke-width="1.2"/>
+          ${[0, 1, 2, 3, 4].map((k) => { const a = (-150 + k * 30) * Math.PI / 180; return `<text x="${60 + 36 * Math.cos(a)}" y="${60 + 36 * Math.sin(a) + 4}" text-anchor="middle" font-size="11" fill="currentColor">★</text>`; }).join('')}
+          <text x="60" y="74" text-anchor="middle" font-family="Be Vietnam Pro, Arial" font-size="26" font-weight="800" fill="currentColor">Táo</text></svg>
+        </div>
+        <p class="pp-cover-title">THẺ THÔNG HÀNH</p>
+        <p class="pp-cover-sub">PASSPORT · ĐÊM 23 THÁNG CHẠP</p>
+        <span class="pp-chip" aria-hidden="true"><svg viewBox="0 0 48 32"><rect x="1.5" y="1.5" width="45" height="29" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="24" cy="16" r="7" fill="none" stroke="currentColor" stroke-width="2"/><line x1="1.5" y1="16" x2="17" y2="16" stroke="currentColor" stroke-width="2"/><line x1="31" y1="16" x2="46.5" y2="16" stroke="currentColor" stroke-width="2"/></svg></span>
+      </div>`;
+    if (n === PP.data) {
+      const nameMRZ = pass.nickname.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'D').toUpperCase().replace(/[^A-Z0-9]+/g, '<');
+      const l1 = ('P<TAO<<' + nameMRZ + '<'.repeat(44)).slice(0, 44);
+      const l2 = (pass.id.replace('-', '') + '<<VNM' + fmtDate(pass.issuedAt).replace(/\./g, '') + '<<' + total + '/4' + '<'.repeat(44)).slice(0, 44);
+      return `<div class="pp-page">
+        ${ppHead('THẺ THÔNG HÀNH', 'TRANG THÔNG TIN')}
+        <div class="pp-data">
+          <div class="pp-photo" aria-hidden="true">${esc(pass.nickname.trim().charAt(0).toUpperCase())}</div>
+          <dl class="pp-fields">
+            <div><dt>Họ tên / Nickname</dt><dd>${esc(pass.nickname)}</dd></div>
+            <div><dt>Mã thẻ</dt><dd class="mono">${pass.id}</dd></div>
+            <div><dt>Ngày cấp</dt><dd>${fmtDate(pass.issuedAt)}</dd></div>
+            <div><dt>Nơi cấp</dt><dd>Bếp lửa nhà mình</dd></div>
+          </dl>
+        </div>
+        <div class="pp-qr-row">
+          <div class="pp-qr" id="pp-qr" role="img" aria-label="Mã QR của thẻ ${pass.id}"></div>
+          <p>Đưa mã QR này cho nhân sự ở mỗi trạm để đóng dấu.</p>
+        </div>
+        <div class="pp-mrz" aria-hidden="true"><span>${esc(l1)}</span><span>${esc(l2)}</span></div>
+      </div>`;
+    }
+    if (n === PP.guide) return `<div class="pp-page">
+        ${ppHead('HÀNH TRÌNH', 'TRANG 2')}
+        <h4 class="pp-title">Bốn trạm, bốn dấu</h4>
+        <p class="pp-note">Mỗi trạm đóng một dấu vào trang visa riêng. Đủ bốn dấu thì nhận quà ở bàn check-out.</p>
+        <ol class="pp-route">${STATIONS.map((s) => {
+          const on = pass.stamps.includes(s.id);
+          return `<li class="${on ? 'is-on' : ''}"><button type="button" data-ppgo="${PP.visa(s.id)}">
+            <span class="pp-route-n">${ROMAN_ST[s.id - 1]}</span>
+            <span class="pp-route-t">${s.name}<small>${on ? 'Đã đóng dấu ' + fmtDate(stampedAt(s.id), true) : 'Chưa đóng dấu'}</small></span>
+            <i class="ph${on ? '-fill' : ''} ph-${on ? 'seal-check' : 'circle-dashed'}" aria-hidden="true"></i></button></li>`;
+        }).join('')}</ol>
+        <p class="pp-progress"><strong>${total}/4</strong> trạm đã đóng dấu</p>
+      </div>`;
+    const id = n - 2;
+    if (id >= 1 && id <= 4) {
+      const s = STATIONS[id - 1], on = pass.stamps.includes(id), st = STAMP_STYLE[id];
+      return `<div class="pp-page pp-visa" style="--ink:${st.ink}">
+        ${ppHead('VISA · TRẠM ' + ROMAN_ST[id - 1], 'TRANG ' + n)}
+        <h4 class="pp-title">${s.name}</h4>
+        <p class="pp-note">${VISA_TEXT[id]}</p>
+        <div class="pp-stamp-zone ${on ? 'is-on' : ''}" data-zone="${id}">
+          ${on
+            ? `<div class="pp-stamp" data-stamp="${id}" style="--rot:${st.rot}deg;--dx:${st.x}px;--dy:${st.y}px">${stampSVG(id, stampedAt(id))}</div>`
+            : `<p class="pp-empty"><i class="ph ph-stamp" aria-hidden="true"></i>Chỗ đóng dấu<small>Đến ${s.name} và đưa mã QR cho nhân sự</small></p>`}
+        </div>
+      </div>`;
+    }
+    if (n === PP.done) return `<div class="pp-page">
+        ${ppHead('HOÀN THÀNH', 'TRANG 7')}
+        <h4 class="pp-title">${total === 4 ? 'Bạn đã đi đủ bốn trạm' : `Còn ${4 - total} trạm nữa`}</h4>
+        <div class="pp-stamp-zone ${total === 4 ? 'is-on' : ''}">
+          ${total === 4
+            ? `<div class="pp-stamp pp-gold" data-stamp="gold" style="--rot:-8deg;--dx:0px;--dy:0px">${goldStampSVG(Math.max(...STATIONS.map((s) => stampedAt(s.id) || 0)))}</div>`
+            : `<p class="pp-empty"><i class="ph ph-medal" aria-hidden="true"></i>Dấu hoàn thành<small>Sẽ hiện khi đủ bốn dấu</small></p>`}
+        </div>
+        <p class="pp-note">${total === 4 ? 'Mời bạn đến bàn check-out, đưa mã nhận quà bên dưới cho nhân sự.' : 'Mỗi trạm chỉ đóng dấu một lần.'}</p>
+      </div>`;
+    if (n === PP.notes) return `<div class="pp-page pp-notes">
+        ${ppHead('GHI CHÚ', 'TRANG 8')}
+        <p class="pp-note">Ghi lại một khoảnh khắc đáng nhớ ở sự kiện.</p>
+        <div class="pp-lines" aria-hidden="true">${'<span></span>'.repeat(9)}</div>
+      </div>`;
+    return `<div class="pp-cover pp-cover-back"><div class="pp-emblem pp-emblem-sm" aria-hidden="true"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="54" fill="none" stroke="currentColor" stroke-width="3"/><text x="60" y="72" text-anchor="middle" font-family="Be Vietnam Pro, Arial" font-size="26" font-weight="800" fill="currentColor">Táo</text></svg></div><p class="pp-cover-sub">#ChuyenNhaTao</p></div>`;
+  }
+
+  function ppStatus(p) {
+    const label = p === PP.cover ? 'Bìa hộ chiếu' : p === PP.back ? 'Bìa sau' : p === PP.data ? 'Trang thông tin' : p === PP.guide ? 'Hành trình 4 trạm'
+      : p <= 6 ? `Visa ${STATIONS[p - 3].name}` : p === PP.done ? 'Hoàn thành' : 'Ghi chú';
+    $('#pp-status').textContent = label;
+    $('#pp-prev').disabled = p <= 0;
+    $('#pp-next').disabled = p >= PP.count - 1;
+    store.set('pp_page', p);
+  }
+
+  function ppRefresh(pages) {
+    pages.forEach((n) => { if (pp.pageEls[n]) pp.pageEls[n].innerHTML = ppPageHTML(n); });
+    if (pages.includes(PP.data)) ppQR();
+  }
+  function ppQR() {
+    const el = $('#pp-qr');
+    if (!el) return;
+    if (typeof QRCode !== 'undefined') new QRCode(el, { text: 'https://chuyennhatao.vn/p/' + pass.id, width: 112, height: 112, colorDark: '#1b120c', colorLight: '#fffdf7', correctLevel: QRCode.CorrectLevel.M });
+    else el.innerHTML = `<span class="mono" style="font-size:11px">${pass.id}</span>`;
+  }
+
+  function ppGo(p) {
+    if (pp.flip) { if (reduceMotion) { pp.flip.turnToPage(p); ppStatus(p); } else pp.flip.flip(p); }
+    else { pp.pageEls[p].scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' }); ppStatus(p); }
+  }
+
+  function destroyPassport() {
+    if (pp.flip) { try { pp.flip.destroy(); } catch (e) { /* bỏ qua */ } }
+    pp.flip = null; pp.pageEls = [];
+  }
+
   function renderTicket(animate) {
     const slot = $('#ticket-slot');
     if (!pass) {
+      destroyPassport();
       slot.innerHTML = `<div class="ticket ticket-empty">
         <i class="ph ph-identification-card" aria-hidden="true"></i>
-        <strong>Thẻ của bạn sẽ hiện ở đây</strong>
-        <span>Gồm mã QR riêng và bốn ô dấu cho bốn trạm.</span>
+        <strong>Hộ chiếu của bạn sẽ hiện ở đây</strong>
+        <span>Gồm mã QR riêng và bốn trang visa để đóng dấu ở bốn trạm.</span>
         <div style="display:grid;gap:8px;width:100%;max-width:260px;margin-top:8px" aria-hidden="true">
           <div class="skeleton" style="height:12px"></div><div class="skeleton" style="height:12px;width:70%"></div>
         </div></div>`;
       $('#checkout').hidden = true;
       return;
     }
+    if (!pass.issuedAt) { pass.issuedAt = Date.now(); store.set('pass', pass); }
+    destroyPassport();
     const n = pass.stamps.length;
-    slot.innerHTML = `<div class="ticket theme-dark" id="ticket">
-      <div class="ticket-top">
-        <div><p class="label">Chủ thẻ</p><p class="name">${esc(pass.nickname)}</p></div>
-        <div style="text-align:right"><p class="label">Mã thẻ</p><p class="ticket-id">${pass.id}</p></div>
+    slot.innerHTML = `
+      <div class="pp-stage" id="pp-stage" tabindex="0" aria-roledescription="hộ chiếu lật trang" aria-label="Hộ chiếu thông hành. Dùng phím mũi tên để lật trang.">
+        <div class="pp-book" id="pp-book"></div>
       </div>
-      <div class="ticket-body">
-        <div class="qr-box"><div class="qr" id="qr" role="img" aria-label="Mã QR của thẻ ${pass.id}"></div><span>${pass.id}</span></div>
-        <div>
-          <p class="progress-text" aria-live="polite"><strong>${n}/4</strong> trạm đã đóng dấu</p>
-          <div class="stamps" style="margin-top:12px">${STATIONS.map((s) => {
-            const on = pass.stamps.includes(s.id);
-            return `<div class="stamp ${on ? 'is-done' : ''}" data-station="${s.id}">
-              <span class="mark" aria-hidden="true"><i class="ph-fill ph-seal-check"></i></span>
-              <span class="st-name">${s.name}</span>
-              <span class="st-state">${on ? '<i class="ph ph-check" aria-hidden="true"></i> Đã đóng dấu' : 'Chưa đóng dấu'}</span>
-            </div>`;
-          }).join('')}</div>
-        </div>
+      <div class="flip-controls pp-controls">
+        <button class="icon-btn" type="button" id="pp-prev" aria-label="Trang trước"><i class="ph ph-caret-left" aria-hidden="true"></i></button>
+        <p class="flip-status" id="pp-status" aria-live="polite">Bìa hộ chiếu</p>
+        <button class="icon-btn" type="button" id="pp-next" aria-label="Trang sau"><i class="ph ph-caret-right" aria-hidden="true"></i></button>
       </div>
-      ${n < 4 ? `<form class="code-entry" id="form-code" novalidate>
+      ${n < 4 ? `<form class="code-entry pp-code" id="form-code" novalidate>
         <label for="f-code" style="font-weight:600;font-size:15px">Mã QR mờ hoặc không quét được? Nhập mã trạm</label>
         <div class="code-row">
           <input class="input" id="f-code" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="6 ký tự" aria-describedby="f-code-help">
           <button class="btn btn-primary" type="submit">Đóng dấu</button>
         </div>
         <p class="help" id="f-code-help">Bản thử nghiệm: mã các trạm là HUONG1, MAIAM2, NEPNH3, TOTLA4.</p>
-      </form>` : ''}
-    </div>`;
+      </form>` : ''}`;
 
-    const qrEl = $('#qr');
-    if (typeof QRCode !== 'undefined') {
-      new QRCode(qrEl, { text: 'https://chuyennhatao.vn/p/' + pass.id, width: 160, height: 160, colorDark: '#1b120c', colorLight: '#fffaf3', correctLevel: QRCode.CorrectLevel.M });
+    const bookEl = $('#pp-book');
+    pp.pageEls = Array.from({ length: PP.count }, (_, k) => {
+      const el = document.createElement('div');
+      const hard = k === PP.cover || k === PP.back;
+      el.className = 'pp-pg' + (hard ? ' pp-hard' : '');
+      if (hard) el.dataset.density = 'hard';
+      el.innerHTML = ppPageHTML(k);
+      el.addEventListener('mousedown', (e) => { if (e.target.closest('button, a')) e.stopPropagation(); });
+      el.addEventListener('touchstart', (e) => { if (e.target.closest('button, a')) e.stopPropagation(); }, { passive: true });
+      bookEl.appendChild(el);
+      return el;
+    });
+    bookEl.addEventListener('click', (e) => { const b = e.target.closest('[data-ppgo]'); if (b) ppGo(+b.dataset.ppgo); });
+
+    const PF = window.St && window.St.PageFlip;
+    const start = animate ? PP.cover : Math.min(store.get('pp_page', PP.data), PP.count - 1);
+    if (PF) {
+      pp.flip = new PF(bookEl, {
+        width: 320, height: 450, size: 'stretch', minWidth: 240, maxWidth: 360, minHeight: 340, maxHeight: 506,
+        showCover: true, usePortrait: true, autoSize: true, drawShadow: true, maxShadowOpacity: 0.3,
+        flippingTime: reduceMotion ? 1 : 800, mobileScrollSupport: true, disableFlipByClick: true,
+        showPageCorners: !reduceMotion, swipeDistance: 30, startPage: start
+      });
+      pp.flip.loadFromHTML(pp.pageEls);
+      pp.flip.on('flip', (e) => { sound.flip(); ppStatus(e.data); });
     } else {
-      qrEl.innerHTML = `<p style="font-size:12px;text-align:center;padding-top:60px">Không tải được mã QR. Dùng mã thẻ bên dưới.</p>`;
+      $('#pp-stage').classList.add('is-fallback');
     }
+    ppQR();
+    ppStatus(start);
+    $('#pp-prev').addEventListener('click', () => (pp.flip ? pp.flip.flipPrev() : ppGo(Math.max(0, store.get('pp_page', 0) - 1))));
+    $('#pp-next').addEventListener('click', () => (pp.flip ? pp.flip.flipNext() : ppGo(Math.min(PP.count - 1, store.get('pp_page', 0) + 1))));
+    $('#pp-stage').addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') { e.preventDefault(); $('#pp-next').click(); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); $('#pp-prev').click(); }
+    });
 
     const fc = $('#form-code');
     if (fc) fc.addEventListener('submit', (e) => { e.preventDefault(); addStamp($('#f-code').value); });
 
-    if (animate && hasGsap && !reduceMotion) {
-      gsap.from('#ticket', { y: 30, opacity: 0, rotateX: 12, transformPerspective: 900, duration: 0.7, ease: 'power3.out' });
+    if (animate) {
+      if (hasGsap && !reduceMotion) gsap.from('#pp-stage', { y: 30, opacity: 0, duration: 0.7, ease: 'power3.out' });
+      // Hộ chiếu mới: tự mở tới trang thông tin
+      setTimeout(() => ppGo(PP.data), reduceMotion ? 0 : 900);
     }
     renderCheckout();
+  }
+
+  // Dấu mực đóng xuống trang visa
+  function playStamp(sel) {
+    const wrap = $(`[data-stamp="${sel}"]`);
+    const el = wrap && wrap.firstElementChild; // khung ngoài giữ góc xoay (CSS), chỉ animate SVG bên trong
+    if (!el) return;
+    if (!hasGsap || reduceMotion) { sound.stamp(); return; }
+    gsap.fromTo(el, { scale: 2.6, opacity: 0, rotation: -22, filter: 'blur(3px)' },
+      { scale: 1, opacity: 1, rotation: 0, filter: 'blur(0px)', duration: 0.42, ease: 'power4.in',
+        onComplete: () => { sound.stamp(); gsap.fromTo(wrap.closest('.pp-stamp-zone') || wrap, { x: 0 }, { x: 3, duration: 0.05, yoyo: true, repeat: 3, clearProps: 'x' }); } });
   }
 
   function addStamp(raw) {
@@ -838,21 +1068,34 @@
     track('qr_scan', { station: st ? st.id : null, valid: !!st });
     if (!/^[A-Z0-9]{6}$/.test(code)) { toast('Mã trạm gồm 6 ký tự, in dưới mã QR của trạm.', 'err'); input && input.classList.add('shake'); return; }
     if (!st) { toast('Mã này chưa khớp với trạm nào. Bạn kiểm tra lại hoặc nhờ nhân sự quét giúp nhé.', 'err'); input && input.classList.add('shake'); return; }
-    if (pass.stamps.includes(st.id)) { toast(`${st.name} đã đóng dấu cho bạn rồi.`, 'info', 'seal-check'); return; }
+    if (pass.stamps.includes(st.id)) { toast(`${st.name} đã đóng dấu cho bạn rồi.`, 'info', 'seal-check'); ppGo(PP.visa(st.id)); return; }
     pass.stamps.push(st.id);
+    pass.stampedAt = Object.assign({}, pass.stampedAt, { [st.id]: Date.now() });
     store.set('pass', pass);
-    sound.chime();
     track('stamp_added', { station: st.id });
-    renderTicket(false);
-    const mark = $(`[data-station="${st.id}"] .mark`);
-    if (hasGsap && !reduceMotion && mark) {
-      // Dấu mộc rơi xuống và đóng chặt (phản hồi thao tác)
-      gsap.fromTo(mark, { scale: 2.4, opacity: 0, rotation: -50 }, { scale: 1, opacity: 1, rotation: -12, duration: 0.55, ease: 'back.out(2.2)' });
-      gsap.fromTo(`[data-station="${st.id}"]`, { scale: 1 }, { scale: 0.97, duration: 0.08, yoyo: true, repeat: 1, delay: 0.3 });
-    }
-    if (pass.stamps.length === 4) {
+    if (input) input.value = '';
+    const complete = pass.stamps.length === 4;
+
+    // Cập nhật nội dung các trang, lật tới trang visa rồi mới đóng dấu
+    ppRefresh([PP.data, PP.guide, PP.visa(st.id), PP.done]);
+    const target = PP.visa(st.id);
+    const cur = store.get('pp_page', 0);
+    const visible = pp.flip ? (pp.flip.getOrientation() === 'landscape' ? [cur, cur % 2 ? cur + 1 : cur - 1] : [cur]) : [target];
+    const wait = visible.includes(target) || reduceMotion ? 80 : 950;
+    // Đóng dấu liên tiếp nhanh: huỷ các lần lật / đóng dấu còn chờ của lần trước
+    pp.timers.forEach(clearTimeout); pp.timers = [];
+    const later = (fn, ms) => pp.timers.push(setTimeout(fn, ms));
+    ppGo(target);
+    later(() => {
+      playStamp(st.id);
+      if (complete) later(() => { ppGo(PP.done); later(() => playStamp('gold'), reduceMotion ? 80 : 950); }, 1300);
+    }, wait);
+
+    if (complete) {
       track('passport_complete');
       toast('Đủ bốn dấu rồi. Mời bạn đến bàn check-out nhận quà.', 'gold', 'gift');
+      const fc = $('#form-code'); if (fc) fc.remove();
+      renderCheckout();
     } else {
       toast(`Đã đóng dấu ${st.name}. Còn ${4 - pass.stamps.length} trạm nữa.`, 'ok', 'seal-check');
     }

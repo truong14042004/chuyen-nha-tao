@@ -915,3 +915,114 @@ body::after {
   .pg-seed { font-size: 16.5px; }
   .pg .option, .pg .chip, .pg .wish-list label { font-size: 15.5px; }
 }
+
+/* =========================================================================
+   HỘ CHIẾU THÔNG HÀNH (S05): cuốn hộ chiếu lật trang, mỗi trạm một trang visa
+   ========================================================================= */
+.pp-stage { position: relative; padding: 6px 0 22px; outline: none; }
+.pp-stage:focus-visible { outline: 3px solid var(--accent-ink); outline-offset: 4px; border-radius: 12px; }
+.pp-stage::after { content: ""; position: absolute; left: 14%; right: 14%; bottom: 4px; height: 24px; z-index: -1; background: radial-gradient(50% 50% at 50% 50%, rgba(20, 40, 30, .3), transparent 70%); filter: blur(4px); }
+.pp-book { margin: 0 auto; }
+.pp-controls { margin-top: 0; }
+.pp-code { margin-top: 14px; padding-top: 16px; }
+
+.pp-pg {
+  position: relative; overflow: hidden; color: #24302a;
+  font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+  background-color: #f4f0e2;
+  background-image:
+    radial-gradient(circle at 50% 46%, rgba(46, 125, 79, .10) 0 18%, transparent 19%),
+    repeating-radial-gradient(circle at 50% 46%, transparent 0 7px, rgba(46, 125, 79, .07) 7px 8px),
+    repeating-linear-gradient(60deg, transparent 0 10px, rgba(199, 50, 26, .035) 10px 11px),
+    repeating-linear-gradient(-60deg, transparent 0 10px, rgba(46, 125, 79, .035) 10px 11px),
+    linear-gradient(180deg, #f8f5ea, #efe9d6);
+  box-shadow: inset 0 0 0 1px rgba(30, 60, 45, .14);
+}
+.pp-pg.--left { border-radius: 8px 0 0 8px; box-shadow: inset -14px 0 18px -14px rgba(20, 40, 30, .35), inset 0 0 0 1px rgba(30, 60, 45, .14); }
+.pp-pg.--right { border-radius: 0 8px 8px 0; box-shadow: inset 14px 0 18px -14px rgba(20, 40, 30, .35), inset 0 0 0 1px rgba(30, 60, 45, .14); }
+.pp-pg.--portrait { border-radius: 8px; }
+/* Hình mờ chữ Táo ở giữa trang */
+.pp-pg:not(.pp-hard)::before {
+  content: "Táo"; position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%) rotate(-18deg);
+  font-weight: 800; font-size: 96px; color: rgba(46, 125, 79, .06); pointer-events: none; letter-spacing: -0.03em;
+}
+.pp-page { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 10px; padding: 18px 20px 20px; z-index: 1; }
+.pp-head { display: flex; justify-content: space-between; font-size: 10px; font-weight: 700; letter-spacing: .14em; color: #2e6b4f; padding-bottom: 8px; border-bottom: 1px solid rgba(46, 107, 79, .3); }
+.pp-title { font-size: 18px; font-weight: 800; line-height: 1.25; color: #1f3329; }
+.pp-note { font-size: 13px; line-height: 1.5; color: #4b5a52; }
+.pp-pg .mono, .pp-mrz { font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace; }
+
+/* Trang thông tin */
+.pp-data { display: grid; grid-template-columns: 84px 1fr; gap: 12px; align-items: start; margin-top: 4px; }
+.pp-photo { width: 84px; height: 104px; display: grid; place-items: center; border-radius: 6px; font-size: 42px; font-weight: 800; color: #fff7ea;
+  background: linear-gradient(160deg, #c7321a, #7a170b); box-shadow: inset 0 0 0 3px rgba(255, 255, 255, .5), 0 2px 6px rgba(0, 0, 0, .2); }
+.pp-fields { display: grid; gap: 6px; margin: 0; }
+.pp-fields dt { font-size: 9.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #5f6f66; }
+.pp-fields dd { margin: 0; font-size: 14px; font-weight: 700; color: #1f3329; word-break: break-word; }
+.pp-qr-row { display: flex; gap: 12px; align-items: center; margin-top: 4px; }
+.pp-qr { flex: none; padding: 6px; background: #fffdf7; border-radius: 6px; box-shadow: inset 0 0 0 1px rgba(30, 60, 45, .2); }
+.pp-qr img, .pp-qr canvas { width: 112px !important; height: 112px !important; display: block; }
+.pp-qr-row p { font-size: 12px; line-height: 1.45; color: #4b5a52; }
+.pp-mrz { margin-top: auto; display: grid; gap: 2px; font-size: 10.5px; letter-spacing: .06em; color: #24302a; background: rgba(255, 255, 255, .55); padding: 6px 8px; border-radius: 4px; overflow: hidden; white-space: nowrap; }
+.pp-mrz span { overflow: hidden; text-overflow: clip; }
+
+/* Trang hành trình */
+.pp-route { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 6px; }
+.pp-route button { width: 100%; min-height: 48px; display: grid; grid-template-columns: 30px 1fr auto; gap: 10px; align-items: center; text-align: left;
+  padding: 6px 10px; border-radius: 6px; border: 1px dashed rgba(46, 107, 79, .35); background: rgba(255, 255, 255, .45); color: #1f3329; font: inherit; }
+.pp-route button * { pointer-events: none; }
+.pp-route li.is-on button { border-style: solid; border-color: rgba(46, 107, 79, .55); background: rgba(46, 125, 79, .08); }
+.pp-route-n { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; border: 1.5px solid #2e6b4f; color: #2e6b4f; font-size: 11px; font-weight: 800; }
+.pp-route-t { font-size: 13.5px; font-weight: 700; line-height: 1.25; }
+.pp-route-t small { display: block; font-size: 11px; font-weight: 500; color: #5f6f66; }
+.pp-route i { font-size: 20px; color: #2e6b4f; }
+.pp-progress { margin-top: auto; font-size: 13px; color: #4b5a52; }
+.pp-progress strong { font-size: 22px; color: #1f3329; }
+
+/* Trang visa + con dấu */
+.pp-visa .pp-head { color: var(--ink); border-bottom-color: currentColor; }
+.pp-stamp-zone { position: relative; flex: 1 1 auto; min-height: 150px; display: grid; place-items: center; margin-top: 4px;
+  border: 1.5px dashed rgba(46, 107, 79, .32); border-radius: 10px; }
+.pp-stamp-zone.is-on { border-color: transparent; }
+.pp-empty { display: grid; justify-items: center; gap: 4px; text-align: center; color: #6c7a72; font-size: 13px; font-weight: 600; padding: 12px; }
+.pp-empty i { font-size: 34px; color: rgba(46, 107, 79, .45); }
+.pp-empty small { font-size: 11.5px; font-weight: 400; max-width: 22ch; }
+.pp-stamp { width: min(78%, 210px); aspect-ratio: 1; transform: translate(var(--dx, 0), var(--dy, 0)) rotate(var(--rot, 0deg)); mix-blend-mode: multiply; }
+.pp-stamp > svg { width: 100%; height: 100%; display: block; transform-origin: 50% 50%; }
+.pp-gold { width: min(70%, 190px); }
+
+/* Trang ghi chú */
+.pp-lines { display: grid; gap: 22px; margin-top: 10px; }
+.pp-lines span { height: 1px; background: rgba(46, 107, 79, .28); }
+
+/* Bìa hộ chiếu: da xanh ngọc, chữ ép nhũ vàng */
+.pp-hard, .pp-hard.--left, .pp-hard.--right, .pp-hard.--portrait {
+  background-color: #123526;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='l'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .35 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23l)'/%3E%3C/svg%3E"),
+    radial-gradient(120% 90% at 30% 20%, #1f5a40 0%, #143e2c 55%, #0b2419 100%);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .35), inset 0 0 50px rgba(0, 0, 0, .45);
+  border-radius: 8px;
+}
+.pp-hard.--left { border-radius: 8px 0 0 8px; }
+.pp-hard.--right { border-radius: 0 8px 8px 0; }
+.pp-cover { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 26px; color: #e2c271; }
+.pp-cover-top { font-size: 13px; font-weight: 700; letter-spacing: .3em; }
+.pp-emblem { width: 120px; height: 120px; color: #e2c271; filter: drop-shadow(0 1px 0 rgba(0, 0, 0, .5)); }
+.pp-emblem svg { width: 100%; height: 100%; }
+.pp-emblem-sm { width: 72px; height: 72px; }
+.pp-cover-title { font-size: 22px; font-weight: 800; letter-spacing: .14em;
+  background: linear-gradient(180deg, #fbe7ad, #d9ad4f 50%, #a57a26 62%, #f1d48a); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.pp-cover-sub { font-size: 10.5px; font-weight: 600; letter-spacing: .22em; color: rgba(226, 194, 113, .85); }
+.pp-chip { width: 48px; height: 32px; color: #e2c271; margin-top: 18px; opacity: .9; }
+.pp-chip svg { width: 100%; height: 100%; }
+
+.pp-stage.is-fallback .pp-book { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; }
+.pp-stage.is-fallback .pp-pg { flex: 0 0 min(80vw, 320px); height: 450px; scroll-snap-align: start; border-radius: 8px; }
+
+@media (max-width: 400px) {
+  .pp-page { padding: 14px 14px 16px; }
+  .pp-data { grid-template-columns: 70px 1fr; }
+  .pp-photo { width: 70px; height: 88px; font-size: 34px; }
+  .pp-qr img, .pp-qr canvas { width: 96px !important; height: 96px !important; }
+}
