@@ -294,6 +294,8 @@
         <p class="lp-tiny">Xuất - bản</p>
       </div>
       <p class="lp-rule"><span>Tập số 1</span><span>Tháng Chạp</span></p>
+      <span class="lp-libstamp" aria-hidden="true">Tủ sách<b>Gia-Đình</b>Số 23</span>
+      <span class="lp-pencil" aria-hidden="true">No 23 — kệ bếp</span>
     </div>`;
   pageHTML[P.intro] = `
     <div class="pg-body">
