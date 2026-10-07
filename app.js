@@ -246,22 +246,131 @@
     }
   ];
 
+  // ----------------------------------------------------------------------
+  // Quyển sách lật trang (StPageFlip). Bố cục 22 trang:
+  //   0 bìa trước · 1 lời mở đầu · 2 mục lục
+  //   mỗi chương i: 3+4i tranh · 4+4i nội dung · 5+4i mini-game · 6+4i huy hiệu
+  //   19 tổng kết huy hiệu · 20 sự kiện · 21 bìa sau
+  // Trang đôi (desktop): [1,2] [3,4] [5,6] ... [19,20] → tranh|nội dung, game|huy hiệu.
+  // ----------------------------------------------------------------------
+  const P = {
+    cover: 0, intro: 1, toc: 2,
+    art: (i) => 3 + i * 4, text: (i) => 4 + i * 4, game: (i) => 5 + i * 4, badge: (i) => 6 + i * 4,
+    summary: 19, event: 20, back: 21, count: 22
+  };
+  const chapterOfPage = (p) => (p >= 3 && p <= 18 ? Math.floor((p - 3) / 4) : null);
+
   const book = {
     idx: Math.min(store.get('chapter', 0), 3),
+    page: Math.min(Math.max(store.get('page', 0), 0), P.count - 1),
     done: new Set(store.get('chapters_done', [])),
-    fails: 0
+    fails: [0, 0, 0, 0],
+    started: new Set(),
+    flip: null
   };
+
+  // ---------- Dựng các trang
+  const pageHTML = [];
+  const folio = (n) => `<span class="pg-folio" aria-hidden="true">${n}</span>`;
+  pageHTML[P.cover] = `
+    <div class="pg-cover-frame">
+      <span class="pg-seal" aria-hidden="true">Táo</span>
+      <p class="pg-cover-kicker">Đêm 23 tháng Chạp</p>
+      <h3 class="pg-cover-title">Chuyện<br>Nhà Táo</h3>
+      <p class="pg-cover-sub">Bốn chương về gian bếp ngày Tết</p>
+      <button class="pg-cover-open" type="button" data-goto="${P.intro}">Mở sách <i class="ph ph-arrow-right" aria-hidden="true"></i></button>
+    </div>`;
+  pageHTML[P.intro] = `
+    <div class="pg-body">
+      <p class="pg-kicker">Lời mở đầu</p>
+      <h3 class="pg-title">Gửi người giữ lửa</h3>
+      <p class="pg-prose">Ngày 23 tháng Chạp, ông Táo cưỡi cá chép về trời, kể lại một năm của mỗi gia đình. Cuốn sách nhỏ này mời bạn ngồi bên bếp lửa, đọc bốn câu chuyện về hướng thiện, mái ấm, nếp nhà và điều tốt lành.</p>
+      <p class="pg-prose">Cuối mỗi chương có một thử thách nhỏ. Hoàn thành để nhận huy hiệu, rồi mang bốn huy hiệu đến sự kiện nhé.</p>
+      <p class="pg-hint"><i class="ph ph-hand-swipe-right" aria-hidden="true"></i> Kéo góc trang hoặc vuốt ngang để lật</p>
+    </div>${folio(1)}`;
+  pageHTML[P.toc] = `
+    <div class="pg-body">
+      <p class="pg-kicker">Mục lục</p>
+      <ol class="pg-toc">
+        ${CHAPTERS.map((c, i) => `<li><button type="button" data-goto="${P.art(i)}"><span class="toc-n">${i + 1}</span><span class="toc-t">${c.title}<small>${c.meaning}</small></span><span class="toc-p">${P.art(i)}</span></button></li>`).join('')}
+        <li><button type="button" data-goto="${P.summary}"><span class="toc-n"><i class="ph ph-medal" aria-hidden="true"></i></span><span class="toc-t">Bộ huy hiệu và sự kiện</span><span class="toc-p">${P.summary}</span></button></li>
+      </ol>
+    </div>${folio(2)}`;
+  CHAPTERS.forEach((c, i) => {
+    pageHTML[P.art(i)] = `
+      <div class="pg-art" style="--pos:${c.pos || 'center'}">
+        <img src="${c.img}" alt="${c.alt}" loading="lazy" decoding="async" onerror="this.remove()">
+        <i class="ph ph-${c.icon} pg-art-icon" aria-hidden="true"></i>
+        <span class="pg-art-num" aria-hidden="true">${i + 1}</span>
+        <p class="pg-seed"><small>Câu hỏi gieo</small>${c.seed}</p>
+      </div>${folio(P.art(i))}`;
+    pageHTML[P.text(i)] = `
+      <div class="pg-body">
+        <p class="pg-kicker">Chương ${i + 1} · ${c.meaning}</p>
+        <h3 class="pg-title">${c.title}</h3>
+        <p class="pg-prose pg-story">${c.story}</p>
+        <div class="pg-tools">
+          <button class="btn btn-ghost btn-sm" type="button" data-voice="${i}"><i class="ph ph-speaker-high" aria-hidden="true"></i> <span>Nghe đọc</span></button>
+          <button class="btn btn-quiet btn-sm" type="button" data-goto="${P.game(i)}">Làm thử thách <i class="ph ph-arrow-right" aria-hidden="true"></i></button>
+        </div>
+      </div>${folio(P.text(i))}`;
+    pageHTML[P.game(i)] = `<div class="pg-body"><p class="pg-kicker">Thử thách chương ${i + 1}</p><div class="game" id="game-${i}"></div></div>${folio(P.game(i))}`;
+    pageHTML[P.badge(i)] = `<div class="pg-body pg-badge-page" id="badge-page-${i}"></div>${folio(P.badge(i))}`;
+  });
+  pageHTML[P.summary] = `
+    <div class="pg-body">
+      <p class="pg-kicker">Tổng kết</p>
+      <h3 class="pg-title" data-summary-title>Gom đủ bốn huy hiệu</h3>
+      <div class="badges pg-badges" id="badges"></div>
+    </div>${folio(P.summary)}`;
+  pageHTML[P.event] = `
+    <div class="pg-body">
+      <p class="pg-kicker">Hẹn gặp ở sự kiện</p>
+      <h3 class="pg-title">Bốn trạm đang chờ bạn</h3>
+      <p class="pg-prose" data-summary-text>Bốn trạm thực tế đang chờ bạn đóng dấu và nhận quà.</p>
+      <dl class="event-meta">
+        <div><i class="ph ph-calendar-blank" aria-hidden="true"></i><span><dt>Ngày giờ</dt><dd><span class="soon">Sắp công bố</span></dd></span></div>
+        <div><i class="ph ph-map-pin" aria-hidden="true"></i><span><dt>Địa điểm</dt><dd><span class="soon">Sắp công bố</span></dd></span></div>
+      </dl>
+      <a class="btn btn-primary btn-block" href="#tram-trai-nghiem" data-track="cta_passport" data-track-from="summary">Lấy thẻ thông hành</a>
+    </div>${folio(P.event)}`;
+  pageHTML[P.back] = `
+    <div class="pg-cover-frame pg-back">
+      <span class="pg-seal" aria-hidden="true">Táo</span>
+      <p class="pg-cover-sub">Bếp đỏ giữ lửa, nếp nhà đoàn viên</p>
+      <p class="pg-cover-kicker">#ChuyenNhaTao</p>
+      <button class="pg-cover-open" type="button" data-goto="${P.cover}"><i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i> Đọc lại từ đầu</button>
+    </div>`;
+
+  const flipbookEl = $('#flipbook');
+  const pageEls = pageHTML.map((html, n) => {
+    const el = document.createElement('div');
+    const hard = n === P.cover || n === P.back;
+    el.className = 'pg' + (hard ? ' pg-hard' : '') + (n === P.cover ? ' pg-cover' : '') + (n === P.back ? ' pg-backcover' : '');
+    if (hard) el.dataset.density = 'hard';
+    el.setAttribute('role', 'group');
+    el.setAttribute('aria-label', n === P.cover ? 'Bìa sách' : n === P.back ? 'Bìa sau' : `Trang ${n}`);
+    el.innerHTML = html;
+    // Bấm vào nút, ô nhập, chip... không được kích hoạt lật trang của thư viện
+    const guard = (e) => { if (e.target.closest('button, a, input, label, textarea, select, .chip, .option, [data-noflip]')) e.stopPropagation(); };
+    el.addEventListener('mousedown', guard);
+    el.addEventListener('touchstart', guard, { passive: true });
+    flipbookEl.appendChild(el);
+    return el;
+  });
+
+  // ---------- Tab chương
   const tabsEl = $('#chapter-tabs');
   CHAPTERS.forEach((c, i) => {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'chapter-tab'; b.setAttribute('role', 'tab'); b.id = 'tab-' + i;
-    b.setAttribute('aria-controls', 'book');
+    b.setAttribute('aria-controls', 'flip-stage');
     b.innerHTML = `<span class="n">Chương ${i + 1}<i class="ph-fill ph-seal-check" aria-hidden="true" hidden></i></span><span class="t">${c.short}</span>`;
-    b.addEventListener('click', () => goChapter(i));
+    b.addEventListener('click', () => goPage(P.art(i)));
     b.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
         const n = (i + (e.key === 'ArrowRight' ? 1 : 3)) % 4;
-        $('#tab-' + n).focus(); goChapter(n);
+        $('#tab-' + n).focus(); goPage(P.art(n));
       }
     });
     tabsEl.appendChild(b);
@@ -284,63 +393,80 @@
     });
   }
 
-  function renderChapter() {
-    const c = CHAPTERS[book.idx];
-    book.fails = 0;
-    const art = $('#page-art');
-    art.classList.remove('has-img');
-    art.innerHTML = `
-      <i class="ph ph-${c.icon} art-icon" aria-hidden="true"></i>
-      <span class="art-num" aria-hidden="true">${book.idx + 1}</span>
-      <p class="seed-q"><small>Câu hỏi gieo</small>${c.seed}</p>`;
-    // Tranh minh hoạ chương; thiếu ảnh thì giữ icon làm dự phòng
-    const img = new Image();
-    img.className = 'art-img';
-    img.alt = c.alt;
-    img.decoding = 'async';
-    img.style.objectPosition = c.pos || 'center';
-    img.onload = () => { if (art.isConnected && CHAPTERS[book.idx] === c) { art.prepend(img); art.classList.add('has-img'); } };
-    img.src = c.img;
-    // Tải trước tranh chương kế để lật trang không bị chờ
-    const nx = CHAPTERS[book.idx + 1];
-    if (nx) { const pre = new Image(); pre.src = nx.img; }
-    const done = book.done.has(book.idx);
-    $('#page-text').innerHTML = `
-      <div>
-        <p class="meaning">Chương ${book.idx + 1} · ${c.meaning}</p>
-        <h3 style="margin-top:6px">${c.title}</h3>
-      </div>
-      <p class="story">${c.story}</p>
-      <div class="page-tools">
-        <button class="btn btn-ghost btn-sm" type="button" id="btn-voice"><i class="ph ph-speaker-high" aria-hidden="true"></i> <span>Nghe đọc</span></button>
-      </div>
-      <div class="game" id="game"></div>`;
-    $('#btn-voice').addEventListener('click', voiceOver);
-    if (done) renderGameDone(); else renderGame();
-    syncTabs();
-    track('chapter_start', { chapter: book.idx + 1 });
+  function pageLabel(p) {
+    if (p === P.cover) return 'Bìa sách';
+    if (p === P.back) return 'Bìa sau';
+    const ch = chapterOfPage(p);
+    const where = ch !== null ? `Chương ${ch + 1}` : p <= P.toc ? 'Lời mở đầu' : 'Tổng kết';
+    return `${where} · Trang ${p}/${P.count - 2}`;
   }
 
-  function goChapter(i) {
-    if (i === book.idx) return;
-    const dir = i > book.idx ? 1 : -1;
-    book.idx = i; store.set('chapter', i);
-    stopVoice();
-    sound.flip();
-    moveIndicator(true);
-    const leaf = $('.leaf');
-    if (hasGsap && !reduceMotion) {
-      // Lật trang: tờ giấy quay quanh gáy sách, đổi nội dung ở giữa vòng lật
-      gsap.timeline()
-        .set(leaf, { opacity: 1, rotateY: dir > 0 ? 0 : -180 })
-        .to(leaf, { rotateY: dir > 0 ? -90 : -90, duration: 0.28, ease: 'power2.in' })
-        .add(renderChapter)
-        .to(leaf, { rotateY: dir > 0 ? -180 : 0, duration: 0.32, ease: 'power2.out' })
-        .set(leaf, { opacity: 0 })
-        .from(['#page-art > *', '#page-text > *'], { opacity: 0, y: 10, stagger: 0.04, duration: 0.3, ease: 'power2.out' }, '-=0.2');
+  // ---------- Điều hướng trang
+  function goPage(p) {
+    if (book.flip) {
+      if (reduceMotion) book.flip.turnToPage(p); else book.flip.flip(p);
+      if (reduceMotion) onPageChange(p);
     } else {
-      renderChapter();
+      // Dự phòng khi thư viện không tải được: cuộn ngang tới trang
+      pageEls[p].scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', inline: 'start', block: 'nearest' });
+      onPageChange(p);
     }
+  }
+
+  function onPageChange(p) {
+    book.page = p;
+    store.set('page', p);
+    stopVoice();
+    const ch = chapterOfPage(p);
+    if (ch !== null && ch !== book.idx) { book.idx = ch; store.set('chapter', ch); moveIndicator(true); }
+    if (ch !== null && !book.started.has(ch)) { book.started.add(ch); track('chapter_start', { chapter: ch + 1 }); }
+    syncTabs();
+    $('#flip-status').textContent = pageLabel(p);
+    $('#flip-prev').disabled = p <= 0;
+    $('#flip-next').disabled = p >= P.count - 1;
+  }
+
+  flipbookEl.addEventListener('click', (e) => {
+    const go = e.target.closest('[data-goto]');
+    if (go) { goPage(+go.dataset.goto); return; }
+    const v = e.target.closest('[data-voice]');
+    if (v) voiceOver(v, +v.dataset.voice);
+  });
+  $('#flip-prev').addEventListener('click', () => (book.flip ? book.flip.flipPrev() : goPage(Math.max(0, book.page - 1))));
+  $('#flip-next').addEventListener('click', () => (book.flip ? book.flip.flipNext() : goPage(Math.min(P.count - 1, book.page + 1))));
+  $('#flip-stage').addEventListener('keydown', (e) => {
+    if (e.target.closest('input, textarea')) return;
+    if (e.key === 'ArrowRight') { e.preventDefault(); $('#flip-next').click(); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); $('#flip-prev').click(); }
+  });
+
+  function initFlipbook() {
+    const PF = window.St && window.St.PageFlip;
+    if (!PF) {
+      $('#flip-stage').classList.add('is-fallback');
+      onPageChange(book.page);
+      return;
+    }
+    // Trang tỉ lệ 460:620 (điện thoại: 460:740 cho đủ chỗ mini-game),
+    // cao tối đa vừa màn hình (trừ header và thanh điều khiển)
+    const narrow = window.innerWidth < 600;
+    const ph = narrow ? 740 : 620;
+    const maxH = Math.max(440, Math.min(narrow ? 600 : 680, window.innerHeight - 140));
+    book.flip = new PF(flipbookEl, {
+      width: 460, height: ph, size: 'stretch',
+      minWidth: 280, maxWidth: Math.round(maxH * 460 / ph), minHeight: 380, maxHeight: maxH,
+      showCover: true, usePortrait: true, autoSize: true,
+      drawShadow: true, maxShadowOpacity: 0.35,
+      flippingTime: reduceMotion ? 1 : 900,
+      mobileScrollSupport: true, disableFlipByClick: true, showPageCorners: !reduceMotion,
+      swipeDistance: 30, startPage: book.page, startZIndex: 1
+    });
+    book.flip.loadFromHTML(pageEls);
+    book.flip.on('flip', (e) => { sound.flip(); onPageChange(e.data); });
+    book.flip.on('changeOrientation', () => { if (window.ScrollTrigger) ScrollTrigger.refresh(); });
+    $('#flip-stage').classList.add('is-ready');
+    onPageChange(book.page);
+    if (window.ScrollTrigger) ScrollTrigger.refresh();
   }
 
   // Voice-over (PDF S02): ưu tiên file thu âm audio/chuong-N.mp3.
@@ -348,10 +474,12 @@
   // (Windows mặc định chỉ có giọng Anh: đọc chữ Việt bằng giọng Anh nghe rất sai).
   let speaking = false;
   let audioEl = null;
+  let voiceBtn = null;
   const setVoiceLabel = (btn, on) => { if (btn && btn.isConnected) btn.querySelector('span').textContent = on ? 'Dừng đọc' : 'Nghe đọc'; };
   function stopVoice() {
     if ('speechSynthesis' in window) speechSynthesis.cancel();
     if (audioEl) { audioEl.pause(); audioEl = null; }
+    if (speaking) setVoiceLabel(voiceBtn, false);
     speaking = false;
   }
   function viVoice() {
@@ -377,66 +505,67 @@
     speechSynthesis.speak(u);
   }
 
-  function voiceOver(e) {
-    const btn = e.currentTarget;
-    if (speaking) { stopVoice(); setVoiceLabel(btn, false); return; }
-    const c = CHAPTERS[book.idx];
-    speaking = true; setVoiceLabel(btn, true);
-    track('voice_play', { chapter: book.idx + 1 });
-    audioEl = new Audio(`audio/chuong-${book.idx + 1}.mp3`);
+  function voiceOver(btn, i) {
+    if (speaking) { stopVoice(); return; }
+    const c = CHAPTERS[i];
+    voiceBtn = btn; speaking = true; setVoiceLabel(btn, true);
+    track('voice_play', { chapter: i + 1 });
+    audioEl = new Audio(`audio/chuong-${i + 1}.mp3`);
     audioEl.onended = () => { speaking = false; audioEl = null; setVoiceLabel(btn, false); };
     audioEl.onerror = () => { audioEl = null; if (speaking) speakTTS(c, btn); };
     audioEl.play().catch(() => { /* lỗi tải file sẽ đi vào onerror */ });
   }
 
   // ------------------------------------------------------------ mini-game
-  function gameShell(c, body) {
-    return `<div class="game-head"><h4><i class="ph ph-puzzle-piece" aria-hidden="true"></i>${c.game.label}</h4><button class="btn btn-quiet" type="button" id="btn-skip" hidden>Bỏ qua</button></div>
-      <p class="game-prompt">${c.game.q}</p>${body}<p class="feedback" id="feedback" role="status"></p>`;
+  function gameShell(i, body) {
+    const c = CHAPTERS[i];
+    return `<div class="game-head"><h4><i class="ph ph-puzzle-piece" aria-hidden="true"></i>${c.game.label}</h4><button class="btn btn-quiet" type="button" id="skip-${i}" hidden>Bỏ qua</button></div>
+      <p class="game-prompt">${c.game.q}</p>${body}<p class="feedback" id="fb-${i}" role="status"></p>`;
   }
-  function fail(msg, el) {
-    book.fails++;
-    const fb = $('#feedback'); fb.className = 'feedback err'; fb.textContent = msg;
+  function fail(i, msg, el) {
+    book.fails[i]++;
+    const fb = $('#fb-' + i); fb.className = 'feedback err'; fb.textContent = msg;
     if (el) { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
     // PDF S02: có nút bỏ qua mini-game sau lần sai thứ 3
-    if (book.fails >= 3) $('#btn-skip').hidden = false;
+    if (book.fails[i] >= 3) $('#skip-' + i).hidden = false;
   }
 
-  function renderGame() {
-    const c = CHAPTERS[book.idx], g = c.game, box = $('#game');
+  function renderGame(i) {
+    const c = CHAPTERS[i], g = c.game, box = $('#game-' + i);
+    book.fails[i] = 0;
     if (g.type === 'quiz') {
-      const opts = g.options.map((o, i) => ({ ...o, i })).sort(() => Math.random() - 0.5);
-      box.innerHTML = gameShell(c, `<div class="options">${opts.map((o) => `<button class="option" type="button" data-i="${o.i}"><i class="ph ph-circle" aria-hidden="true"></i>${o.t}</button>`).join('')}</div>`);
+      const opts = g.options.map((o, k) => ({ ...o, k })).sort(() => Math.random() - 0.5);
+      box.innerHTML = gameShell(i, `<div class="options">${opts.map((o) => `<button class="option" type="button" data-k="${o.k}"><i class="ph ph-circle" aria-hidden="true"></i>${o.t}</button>`).join('')}</div>`);
       $$('.option', box).forEach((b) => b.addEventListener('click', () => {
-        const o = g.options[+b.dataset.i];
-        if (o.ok) { b.classList.add('is-right'); completeChapter(); }
-        else { b.classList.add('is-wrong'); b.disabled = true; fail('Chưa đúng rồi. Đọc lại đoạn đầu chương một chút nhé.', b); }
+        const o = g.options[+b.dataset.k];
+        if (o.ok) { b.classList.add('is-right'); completeChapter(i); }
+        else { b.classList.add('is-wrong'); b.disabled = true; fail(i, 'Chưa đúng rồi. Đọc lại đoạn đầu chương một chút nhé.', b); }
       }));
     }
 
     if (g.type === 'order') {
-      const shuffled = g.pieces.map((p, i) => ({ p, i })).sort(() => Math.random() - 0.5);
-      box.innerHTML = gameShell(c, `<div class="answer-line" id="answer" data-empty="Câu ca dao sẽ hiện ở đây"></div>
-        <div class="chips" id="pieces">${shuffled.map((s) => `<button class="chip" type="button" data-i="${s.i}">${s.p}</button>`).join('')}</div>`);
+      const shuffled = g.pieces.map((p, k) => ({ p, k })).sort(() => Math.random() - 0.5);
+      box.innerHTML = gameShell(i, `<div class="answer-line" id="answer-${i}" data-empty="Câu ca dao sẽ hiện ở đây"></div>
+        <div class="chips">${shuffled.map((s) => `<button class="chip" type="button" data-k="${s.k}">${s.p}</button>`).join('')}</div>`);
       let next = 0;
-      $$('#pieces .chip', box).forEach((b) => b.addEventListener('click', () => {
-        if (+b.dataset.i === next) {
+      $$('.chips .chip', box).forEach((b) => b.addEventListener('click', () => {
+        if (+b.dataset.k === next) {
           b.classList.add('is-used');
           const s = document.createElement('span'); s.textContent = g.pieces[next];
-          $('#answer').appendChild(s);
+          $('#answer-' + i).appendChild(s);
           if (hasGsap && !reduceMotion) gsap.from(s, { y: 12, opacity: 0, duration: 0.3, ease: 'back.out(1.6)' });
           next++;
-          if (next === g.pieces.length) completeChapter();
-        } else fail('Mảnh này đứng sau một chút. Thử mảnh khác nhé.', b);
+          if (next === g.pieces.length) completeChapter(i);
+        } else fail(i, 'Mảnh này đứng sau một chút. Thử mảnh khác nhé.', b);
       }));
     }
 
     if (g.type === 'match') {
-      const left = g.pairs.map((p, i) => ({ t: p[0], i })).sort(() => Math.random() - 0.5);
-      const right = g.pairs.map((p, i) => ({ t: p[1], i })).sort(() => Math.random() - 0.5);
-      box.innerHTML = gameShell(c, `<div class="match-grid">
-        <div class="match-col" aria-label="Vật dụng">${left.map((l) => `<button class="chip" type="button" data-side="l" data-i="${l.i}">${l.t}</button>`).join('')}</div>
-        <div class="match-col" aria-label="Ý nghĩa">${right.map((r) => `<button class="chip" type="button" data-side="r" data-i="${r.i}">${r.t}</button>`).join('')}</div>
+      const left = g.pairs.map((p, k) => ({ t: p[0], k })).sort(() => Math.random() - 0.5);
+      const right = g.pairs.map((p, k) => ({ t: p[1], k })).sort(() => Math.random() - 0.5);
+      box.innerHTML = gameShell(i, `<div class="match-grid">
+        <div class="match-col" aria-label="Vật dụng">${left.map((l) => `<button class="chip" type="button" data-side="l" data-k="${l.k}">${l.t}</button>`).join('')}</div>
+        <div class="match-col" aria-label="Ý nghĩa">${right.map((r) => `<button class="chip" type="button" data-side="r" data-k="${r.k}">${r.t}</button>`).join('')}</div>
       </div>`);
       let pick = null, matched = 0;
       $$('.chip', box).forEach((b) => b.addEventListener('click', () => {
@@ -444,34 +573,34 @@
           if (pick) pick.classList.remove('is-selected');
           pick = b; b.classList.add('is-selected'); return;
         }
-        if (pick.dataset.i === b.dataset.i) {
+        if (pick.dataset.k === b.dataset.k) {
           [pick, b].forEach((x) => { x.classList.remove('is-selected'); x.classList.add('is-matched'); x.setAttribute('aria-disabled', 'true'); });
           matched++; pick = null;
-          const fb = $('#feedback'); fb.className = 'feedback ok'; fb.textContent = `Đúng rồi. Còn ${g.pairs.length - matched} cặp.`;
-          if (matched === g.pairs.length) completeChapter();
+          const fb = $('#fb-' + i); fb.className = 'feedback ok'; fb.textContent = `Đúng rồi. Còn ${g.pairs.length - matched} cặp.`;
+          if (matched === g.pairs.length) completeChapter(i);
         } else {
           pick.classList.remove('is-selected'); pick = null;
-          fail('Chưa khớp. Nghĩ về câu chuyện chương này rồi thử lại.', b);
+          fail(i, 'Chưa khớp. Nghĩ về câu chuyện chương này rồi thử lại.', b);
         }
       }));
     }
 
     if (g.type === 'wish') {
-      box.innerHTML = gameShell(c, `<div class="wish-list" role="radiogroup" aria-label="Điều tốt lành">
-          ${g.wishes.map((w, i) => `<label><input type="radio" name="wish" value="${i}" ${i === 0 ? 'checked' : ''}>${w}</label>`).join('')}
+      box.innerHTML = gameShell(i, `<div class="wish-list" role="radiogroup" aria-label="Điều tốt lành">
+          ${g.wishes.map((w, k) => `<label><input type="radio" name="wish-${i}" value="${k}" ${k === 0 ? 'checked' : ''}>${w}</label>`).join('')}
         </div>
         <div class="field">
-          <label for="wish-note">Lời nhắn thêm <span class="opt" style="color:var(--text-dim);font-weight:400">(không bắt buộc, tối đa 80 ký tự)</span></label>
-          <input class="input" id="wish-note" maxlength="80" placeholder="Ví dụ: năm nay về nhà sớm hơn">
+          <label for="wish-note-${i}">Lời nhắn thêm <span class="opt" style="color:var(--text-dim);font-weight:400">(không bắt buộc)</span></label>
+          <input class="input" id="wish-note-${i}" maxlength="80" placeholder="Ví dụ: năm nay về nhà sớm hơn">
         </div>
-        <button class="btn btn-primary" type="button" id="btn-release"><i class="ph ph-paper-plane-tilt" aria-hidden="true"></i> Thả đèn trời</button>`);
-      $('#btn-release').addEventListener('click', (e) => {
-        store.set('wish', { choice: +$('input[name="wish"]:checked').value, note: $('#wish-note').value.trim() });
+        <button class="btn btn-primary" type="button" id="release-${i}"><i class="ph ph-paper-plane-tilt" aria-hidden="true"></i> Thả đèn trời</button>`);
+      $('#release-' + i).addEventListener('click', (e) => {
+        store.set('wish', { choice: +$(`input[name="wish-${i}"]:checked`).value, note: $('#wish-note-' + i).value.trim() });
         releaseLantern(e.currentTarget);
-        completeChapter();
+        completeChapter(i);
       });
     }
-    $('#btn-skip').addEventListener('click', () => { track('minigame_skip', { chapter: book.idx + 1 }); completeChapter(true); });
+    $('#skip-' + i).addEventListener('click', () => { track('minigame_skip', { chapter: i + 1 }); completeChapter(i, true); });
   }
 
   function releaseLantern(fromEl) {
@@ -490,59 +619,61 @@
     }
   }
 
-  function renderGameDone() {
-    const c = CHAPTERS[book.idx];
-    const last = book.idx === CHAPTERS.length - 1;
-    $('#game').innerHTML = `
-      <div class="game-done"><span class="medal"><i class="ph-fill ph-medal" aria-hidden="true"></i></span>
-        <span><strong>${c.badge.name}</strong><span>${c.badge.desc}</span></span></div>
-      <div>${last
-        ? `<a class="btn btn-primary" href="#tong-ket">Xem bộ huy hiệu <i class="ph ph-arrow-down" aria-hidden="true"></i></a>`
-        : `<button class="btn btn-primary" type="button" id="btn-next">Sang chương ${book.idx + 2} <i class="ph ph-arrow-right" aria-hidden="true"></i></button>`}</div>`;
-    const nb = $('#btn-next');
-    if (nb) nb.addEventListener('click', () => {
-      goChapter(book.idx + 1);
-      $('#doc-sach').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
-    });
+  // Trang game sau khi xong + trang huy hiệu của chương
+  function renderGameDone(i) {
+    $('#game-' + i).innerHTML = `
+      <div class="game-done"><span class="medal"><i class="ph-fill ph-check-fat" aria-hidden="true"></i></span>
+        <span><strong>Bạn đã hoàn thành thử thách</strong><span>Lật trang để nhận huy hiệu.</span></span></div>
+      <button class="btn btn-primary" type="button" data-goto="${P.badge(i)}">Nhận huy hiệu <i class="ph ph-arrow-right" aria-hidden="true"></i></button>`;
+  }
+  function renderBadgePage(i, animate) {
+    const c = CHAPTERS[i], on = book.done.has(i), last = i === CHAPTERS.length - 1;
+    const pg = $('#badge-page-' + i);
+    pg.innerHTML = `
+      <p class="pg-kicker">Huy hiệu chương ${i + 1}</p>
+      <div class="pg-medal ${on ? 'is-on' : ''}"><i class="ph${on ? '-fill' : ''} ph-${on ? 'medal' : 'lock-simple'}" aria-hidden="true"></i></div>
+      <h3 class="pg-title">${c.badge.name}</h3>
+      <p class="pg-prose">${on ? c.badge.desc : 'Hoàn thành thử thách ở trang bên để mở huy hiệu này.'}</p>
+      ${on ? (last
+        ? `<button class="btn btn-primary" type="button" data-goto="${P.summary}">Xem bộ huy hiệu <i class="ph ph-arrow-right" aria-hidden="true"></i></button>`
+        : `<button class="btn btn-primary" type="button" data-goto="${P.art(i + 1)}">Sang chương ${i + 2} <i class="ph ph-arrow-right" aria-hidden="true"></i></button>`)
+        : `<button class="btn btn-ghost" type="button" data-goto="${P.game(i)}"><i class="ph ph-arrow-left" aria-hidden="true"></i> Về thử thách</button>`}`;
+    if (animate && hasGsap && !reduceMotion) gsap.from($('.pg-medal', pg), { scale: 0.3, rotation: -40, duration: 0.7, ease: 'back.out(2)', delay: 0.2 });
   }
 
-  function completeChapter(skipped) {
-    const first = !book.done.has(book.idx);
-    book.done.add(book.idx);
+  function completeChapter(i, skipped) {
+    const first = !book.done.has(i);
+    book.done.add(i);
     store.set('chapters_done', [...book.done]);
     sound.chime();
-    track('chapter_complete', { chapter: book.idx + 1, skipped: !!skipped });
+    track('chapter_complete', { chapter: i + 1, skipped: !!skipped });
     if (first) {
-      track('badge_unlocked', { badge: CHAPTERS[book.idx].badge.name });
-      toast(`Bạn vừa mở ${CHAPTERS[book.idx].badge.name}.`, 'gold', 'medal');
+      track('badge_unlocked', { badge: CHAPTERS[i].badge.name });
+      toast(`Bạn vừa mở ${CHAPTERS[i].badge.name}.`, 'gold', 'medal');
     }
     setTimeout(() => {
-      renderGameDone();
-      if (hasGsap && !reduceMotion) gsap.from('.game-done', { scale: 0.9, opacity: 0, duration: 0.5, ease: 'back.out(1.6)' });
+      renderGameDone(i);
+      if (hasGsap && !reduceMotion) gsap.from($('#game-' + i + ' .game-done'), { scale: 0.9, opacity: 0, duration: 0.5, ease: 'back.out(1.6)' });
+      renderBadgePage(i, true);
       syncTabs();
-      renderBadges(book.idx);
+      renderBadges();
     }, skipped ? 0 : 500);
   }
 
   /* ======================================================================
-   * S03 · Tổng kết 4 huy hiệu
+   * S03 · Tổng kết 4 huy hiệu (trang 19–20 của sách)
    * ==================================================================== */
-  function renderBadges(justUnlocked) {
+  function renderBadges() {
     $('#badges').innerHTML = CHAPTERS.map((c, i) => {
       const on = book.done.has(i);
-      return `<div class="badge ${on ? 'is-unlocked' : ''}" data-badge="${i}">
+      return `<button type="button" class="badge ${on ? 'is-unlocked' : ''}" data-badge="${i}" data-goto="${on ? P.badge(i) : P.art(i)}">
         <span class="disc"><i class="ph${on ? '-fill' : ''} ph-${on ? 'medal' : 'lock-simple'}" aria-hidden="true"></i></span>
         <h4>${c.badge.name}</h4>
-        <p>${on ? c.badge.desc : 'Hoàn thành chương ' + (i + 1) + ' để mở'}</p>
-      </div>`;
+        <p>${on ? c.badge.desc : 'Đọc chương ' + (i + 1) + ' để mở'}</p>
+      </button>`;
     }).join('');
-    if (hasGsap && !reduceMotion && justUnlocked !== undefined && book.done.has(justUnlocked)) {
-      gsap.from(`[data-badge="${justUnlocked}"] .disc`, { scale: 0.3, rotation: -40, duration: 0.7, ease: 'back.out(2)' });
-    }
     const n = book.done.size;
-    $('[data-summary-title]').textContent = n === 4
-      ? 'Bạn đã gom đủ bốn huy hiệu'
-      : n === 0 ? 'Gom đủ bốn huy hiệu, rồi gặp nhau ở sự kiện' : `Bạn đã có ${n}/4 huy hiệu`;
+    $('[data-summary-title]').textContent = n === 4 ? 'Bạn đã gom đủ bốn huy hiệu' : n === 0 ? 'Gom đủ bốn huy hiệu' : `Bạn đã có ${n}/4 huy hiệu`;
     $('[data-summary-text]').textContent = n === 4
       ? 'Hướng thiện, mái ấm, nếp nhà và tốt lành. Mang cả bốn giá trị ấy đến sự kiện và đóng dấu ở bốn trạm nhé.'
       : 'Bốn trạm thực tế đang chờ bạn đóng dấu và nhận quà.';
@@ -757,8 +888,8 @@
   $('#btn-clear-local').addEventListener('click', () => {
     if (!confirm('Xóa thẻ, dấu trạm và tiến độ đọc sách trên máy này?')) return;
     store.clear();
-    pass = null; book.done.clear(); book.idx = 0;
-    renderTicket(); renderBadges(); renderChapter(); moveIndicator(false);
+    pass = null; book.done.clear(); book.idx = 0; book.started.clear();
+    renderTicket(); renderAllChapters(); goPage(P.cover); moveIndicator(false);
     toast('Đã xóa dữ liệu trên máy này.', 'ok');
   });
 
@@ -1002,8 +1133,16 @@
   /* ======================================================================
    * Khởi tạo nội dung
    * ==================================================================== */
-  renderChapter();
-  renderBadges();
+  function renderAllChapters() {
+    CHAPTERS.forEach((c, i) => {
+      if (book.done.has(i)) renderGameDone(i); else renderGame(i);
+      renderBadgePage(i);
+    });
+    renderBadges();
+    syncTabs();
+  }
+  renderAllChapters();
+  initFlipbook();
   renderTicket();
   renderQuiz();
   drawCard();
@@ -1064,10 +1203,6 @@
     gsap.from('.flow-line', { scaleX: 0, duration: 0.9, stagger: 0.2, ease: 'power2.inOut', scrollTrigger: { trigger: '.flow', start: 'top 85%' } });
     gsap.from('.flow .ico', { scale: 0.6, opacity: 0, duration: 0.5, stagger: 0.15, ease: 'back.out(1.6)', scrollTrigger: { trigger: '.flow', start: 'top 85%' } });
 
-    gsap.from('#badges .badge', {
-      opacity: 0, scale: 0.92, y: 16, duration: 0.4, stagger: { each: 0.06, grid: 'auto' }, ease: 'back.out(1.4)',
-      scrollTrigger: { trigger: '#badges', start: 'top 85%' }
-    });
   }
 
   else {

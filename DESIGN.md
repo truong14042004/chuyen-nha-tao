@@ -68,8 +68,8 @@
 | Mã PDF | Màn hình | Vị trí trên trang | Trạng thái |
 |---|---|---|---|
 | S01 | Hero + điều hướng | `header#site-header`, `section#hero` | ✅ |
-| S02 | Storybook + 4 chương | `section#doc-sach` (`#chapter-tabs`, `#book`) | ✅ |
-| S03 | Tổng kết huy hiệu + CTA sự kiện | `#tong-ket` (trong `#doc-sach`) | ✅ ngày/địa điểm "Sắp công bố" |
+| S02 | Storybook + 4 chương | `section#doc-sach`: quyển sách lật trang `#flipbook` (StPageFlip) + `#chapter-tabs` | ✅ |
+| S03 | Tổng kết huy hiệu + CTA sự kiện | Trang 19–20 của quyển sách (`#badges`) | ✅ ngày/địa điểm "Sắp công bố" |
 | S04 | Đăng ký / consent / Virtual ID | `#register`, `form#form-register` | ✅ (mô phỏng, chưa có backend) |
 | S05 | Passport 4 trạm | `#ticket-slot` | ✅ (mô phỏng) |
 | S06 | Check-out & quà | `#checkout` | ✅ (mô phỏng) |
@@ -218,7 +218,7 @@ Mỗi chuyển động đều có lý do: dẫn chuyện, tạo thứ bậc, ph�
 | Section hiện dần | `.reveal` | `ScrollTrigger.batch`, y 28 → 0, 0.7s, stagger 0.08, `top 88%` | Thứ bậc khi cuộn |
 | Đường nối 3 bước tự vẽ | `.flow-line` | scaleX 0 → 1, 0.9s | Thể hiện trình tự |
 | Chỉ báo tab trượt | `.tab-indicator` | 0.45s `power3.out` | Báo chương đang chọn |
-| Lật trang sách | `.leaf` | rotateY 0 → −90 → −180, 0.28s + 0.32s | Ẩn dụ lật trang |
+| Lật trang sách | `#flipbook` (StPageFlip) | Trang cong theo góc kéo, đổ bóng, 0.9s; kéo góc, vuốt, nút ‹ ›, phím ← → | Trải nghiệm đọc sách thật |
 | Huy hiệu bật lên | `.badge .disc`, `.game-done` | scale 0.3 → 1, `back.out(2)` | Phản hồi thắng game |
 | Dấu mộc đóng xuống | `.stamp .mark` | scale 2.4 → 1, xoay −50° → −12°, 0.55s | Phản hồi đóng dấu |
 | Đèn trời bay lên | `.lantern-fly` | 3 đèn, bay hết màn hình ~3.2s | Nghi thức thả đèn chương 4 |
@@ -271,6 +271,7 @@ ChuyenNhaTao/
 |---|---|---|
 | three.js + BufferGeometryUtils + STLLoader | r147 (`examples/js`) | Cảnh 3D |
 | GSAP + ScrollTrigger | 3.12.5 | Chuyển động |
+| StPageFlip (`page-flip`) | 2.0.7 | Lật trang sách 3D |
 | qrcodejs | 1.0.0 | Mã QR thẻ thông hành |
 | Phosphor Icons (web) | 2.1.1 | Icon |
 | Be Vietnam Pro | Google Fonts | Chữ |
@@ -288,8 +289,8 @@ ChuyenNhaTao/
 | Menu mobile | `#mobile-menu` | 3 liên kết + nút "Mở cuốn sách"; `aria-expanded` trên nút ☰, đóng bằng Esc |
 | Báo mất mạng | `#offline-bar` | `role="status"`, hiện khi `navigator.onLine === false` |
 | **Hero** | `section#hero.hero.theme-dark` | `#hero-stage` (canvas 3D), `.eyebrow`, `h1#hero-title` (mỗi từ là `span.word`), `.hero-sub`, `.hero-ctas` |
-| **Sách** | `section#doc-sach` | `.section-head`, `#chapter-tabs` (`role="tablist"`, `.tab-indicator`), `article#book` (`.leaf`, `#page-art`, `#page-text`) |
-| **Tổng kết** | `#tong-ket.summary` | `#badges` (4 `.badge`), `aside.event-card` (ngày giờ, địa điểm, CTA) |
+| **Sách** | `section#doc-sach` | `.section-head`, `#chapter-tabs` (`role="tablist"`), `#flip-stage` > `#flipbook` (22 trang `.pg` do app.js dựng), `.flip-controls` (`#flip-prev`, `#flip-status`, `#flip-next`) |
+| **Tổng kết** | trang 19–20 trong sách | `#badges` (4 `.badge`), thông tin sự kiện, CTA |
 | **Thẻ thông hành** | `section#tram-trai-nghiem` | `ol.flow` (3 bước), `#register` (form), `#ticket-slot` (vé), `#checkout` (nhận quà) |
 | Form đăng ký | `form#form-register` | `#error-summary` (`role="alert"`), `#f-nickname`, `#f-email`, `#f-consent`, `#btn-register`, `#btn-restore` |
 | **Vị Táo** | `section#the-vi-tao` | `#quiz` (câu hỏi), `.customize` (`#ugc-photo`, `#ratio-seg`), `aside.ugc-preview` (`#ugc-canvas`, `#dist`, nút tải/chia sẻ, `#captions`) |
@@ -371,6 +372,19 @@ Dữ liệu `CHAPTERS[]`, mỗi chương:
 | `renderBadges()` | Lưới 4 huy hiệu + câu tổng kết S03 |
 | `voiceOver()`, `speakTTS()`, `viVoice()`, `stopVoice()` | Giọng đọc (mục 7) |
 
+### 11.3b Quyển sách lật trang
+22 trang dựng bằng JS rồi giao cho StPageFlip (`loadFromHTML`):
+
+| Trang | Nội dung |
+|---|---|
+| 0 | Bìa cứng (`data-density="hard"`) |
+| 1–2 | Lời mở đầu, Mục lục (bấm để lật tới chương) |
+| 3+4i … 6+4i | Chương i: tranh + câu hỏi gieo, nội dung + nghe đọc, mini-game, huy hiệu |
+| 19–20 | Tổng kết 4 huy hiệu, thông tin sự kiện + CTA |
+| 21 | Bìa sau |
+
+Trên desktop các trang ghép thành trang đôi (tranh | nội dung, mini-game | huy hiệu); dưới 600px hiện từng trang (tỉ lệ trang cao hơn để đủ chỗ mini-game). Hàm chính: `goPage(p)`, `onPageChange(p)`, `initFlipbook()`, `renderGame(i)`, `renderBadgePage(i)`, `renderAllChapters()`. Bấm vào nút, ô nhập, chip trong trang không kích hoạt lật (chặn `mousedown`/`touchstart`). Thư viện không tải được thì trang xếp ngang, vuốt để xem.
+
 ### 11.4 Thẻ thông hành (S04–S06)
 | Thành phần | Mô tả |
 |---|---|
@@ -436,6 +450,7 @@ Bản hiện tại lưu mọi thứ trong **`localStorage` của trình duyệt*
 | Khoá | Nội dung |
 |---|---|
 | `cnt_chapter` | Chương đang đọc (0–3) |
+| `cnt_page` | Trang sách đang mở (0–21), mở lại đúng trang |
 | `cnt_chapters_done` | Mảng chương đã hoàn thành |
 | `cnt_wish` | Lời nguyện chương 4 `{ choice, note }` |
 | `cnt_pass` | Thẻ thông hành (xem dưới) |

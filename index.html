@@ -102,35 +102,24 @@
       <div class="container">
         <div class="section-head reveal">
           <h2 id="book-title">Cuốn sách bốn chương</h2>
-          <p>Mỗi chương là một câu chuyện ngắn về gian bếp ngày Tết. Đọc xong, chơi một thử thách nhỏ để mở huy hiệu.</p>
+          <p>Lật từng trang để đọc câu chuyện gian bếp ngày Tết. Cuối mỗi chương có một thử thách nhỏ để mở huy hiệu.</p>
         </div>
 
         <div class="chapter-tabs reveal" role="tablist" aria-label="Các chương" id="chapter-tabs">
           <span class="tab-indicator" aria-hidden="true"></span>
         </div>
 
-        <article class="book card reveal" id="book" aria-live="polite">
-          <div class="leaf" aria-hidden="true"></div>
-          <div class="book-page page-art" id="page-art"></div>
-          <div class="book-page page-text" id="page-text"></div>
-        </article>
-
-        <!-- S03 · Tổng kết huy hiệu + CTA đến sự kiện -->
-        <div class="summary" id="tong-ket">
-          <div>
-            <h3 class="sr-only">Huy hiệu của bạn</h3>
-            <div class="badges" id="badges"></div>
-          </div>
-          <aside class="card event-card reveal" aria-labelledby="event-title">
-            <h3 id="event-title" data-summary-title>Gom đủ bốn huy hiệu, rồi gặp nhau ở sự kiện</h3>
-            <p data-summary-text>Bốn trạm thực tế đang chờ bạn đóng dấu và nhận quà.</p>
-            <dl class="event-meta">
-              <div><i class="ph ph-calendar-blank" aria-hidden="true"></i><span><dt>Ngày giờ</dt><dd><span class="soon">Sắp công bố</span></dd></span></div>
-              <div><i class="ph ph-map-pin" aria-hidden="true"></i><span><dt>Địa điểm</dt><dd><span class="soon">Sắp công bố</span></dd></span></div>
-            </dl>
-            <a class="btn btn-primary btn-block" href="#tram-trai-nghiem" data-track="cta_passport" data-track-from="summary">Lấy thẻ thông hành</a>
-          </aside>
+        <!-- S02 + S03: quyển sách lật trang (StPageFlip). Trang do app.js dựng. -->
+        <div class="flip-stage reveal" id="flip-stage" tabindex="0" aria-roledescription="sách lật trang" aria-label="Cuốn sách Chuyện Nhà Táo. Dùng phím mũi tên trái, phải để lật trang.">
+          <div class="flipbook" id="flipbook"></div>
         </div>
+
+        <div class="flip-controls reveal">
+          <button class="icon-btn" type="button" id="flip-prev" aria-label="Trang trước"><i class="ph ph-caret-left" aria-hidden="true"></i></button>
+          <p class="flip-status" id="flip-status" aria-live="polite">Bìa sách</p>
+          <button class="icon-btn" type="button" id="flip-next" aria-label="Trang sau"><i class="ph ph-caret-right" aria-hidden="true"></i></button>
+        </div>
+        <p class="flip-hint">Kéo góc trang, vuốt ngang hoặc dùng phím ← → để lật</p>
       </div>
     </section>
 
@@ -325,6 +314,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+  <!-- StPageFlip: lật trang sách 3D (PDF S02 gợi ý StPageFlip/Turn.js) -->
+  <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js" defer></script>
   <script src="ca-chep.js" defer></script>
   <script src="app.js" defer></script>
 </body>
