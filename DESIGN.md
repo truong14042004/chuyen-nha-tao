@@ -162,7 +162,7 @@ Quyển sách ở S02 có ngôn ngữ riêng, gợi cảm giác sách xưa để
 - **Giấy:** nền ngà `#efdfbd`, nhiễu thớ giấy và sợi giấy dó bằng SVG `feTurbulence`, vết ố bằng `radial-gradient` (mỗi trang một kiểu theo `:nth-child`), mép trang tối dần, gáy sách đậm.
 - **Trang trí:** khung viền kép mực nâu, hoa văn ❦ dưới tiêu đề, chữ cái đầu đoạn đóng khung đỏ son, số trang `· n ·`, mục lục số La Mã với đường chấm.
 - **Tranh:** dạng tranh in dán vào trang (viền mat, sepia nhẹ), có chú thích "Hình I.".
-- **Bìa:** kiểu sách in typo thập niên 1950 (như *Văn-hóa Tùng-thư*): giấy ố lốm đốm có nếp gấp chéo, ô chữ đỏ "Bếp-Lửa Tùng-Thư", tựa chữ đen đậm viết hoa có gạch nối giữa các tiếng, dòng phụ đề mực đỏ, hai đường kẻ đỏ ở chân bìa (tập số, tháng). Bộ lọc SVG `#letterpress` (feTurbulence + feDisplacementMap) làm mép chữ nhoè như mực in. Lớp `.lp-*`.
+- **Bìa:** kiểu sách in typo thập niên 1950 (như *Văn-hóa Tùng-thư*): giấy ngà xám bạc màu, bám bụi, có nếp gấp và vết rách nhỏ ở mép, ô chữ đỏ "Bếp-Lửa Tùng-Thư", tựa chữ đen đậm viết hoa có gạch nối giữa các tiếng, dòng phụ đề mực đỏ, hai đường kẻ đỏ ở chân bìa (tập số, tháng). Bộ lọc SVG `#letterpress` (feTurbulence + feDisplacementMap) làm mép chữ nhoè như mực in. Lớp `.lp-*`.
 - **Độ dày:** mép giấy xếp lớp bằng nhiều lớp `box-shadow` ở cạnh ngoài.
 - Màu mực dùng biến riêng trong `.pg`: `--ink`, `--ink-soft`, `--cinnabar`, `--paper`.
 
