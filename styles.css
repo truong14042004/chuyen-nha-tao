@@ -745,3 +745,173 @@ body::after {
 .dist-row.top .bar { background: var(--gold); }
 .ticket.theme-dark { color: var(--text); }
 .chapter-tab .n i { color: var(--gold-ink); }
+
+/* =========================================================================
+   SÁCH CỔ: giấy ố vàng, chữ in có chân, khung mực nâu, bìa da sơn mài sờn
+   (lớp phủ lên phần "Quyển sách lật trang" ở trên)
+   ========================================================================= */
+.pg {
+  --ink: #3a2614;
+  --ink-soft: #5a3e26;
+  --ink-faint: rgba(110, 62, 25, .45);
+  --cinnabar: #9b2a17;
+  --paper: #efdfbd;
+  --paper-light: #f7ecd2;
+  /* thớ giấy: nhiễu màu nâu rất nhẹ */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42 0 0 0 0 .27 0 0 0 0 .12 0 0 0 .11 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  /* sợi giấy dó: vệt dài theo chiều ngang */
+  --fiber: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012 .35' numOctaves='2' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .34 0 0 0 0 .16 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+  /* vết ố */
+  --stains:
+    radial-gradient(38% 26% at 82% 14%, rgba(160, 100, 40, .10), transparent 70%),
+    radial-gradient(22% 16% at 14% 78%, rgba(150, 90, 35, .09), transparent 70%),
+    radial-gradient(10% 7% at 70% 86%, rgba(140, 80, 30, .08), transparent 75%);
+  --vignette: radial-gradient(120% 100% at 50% 45%, transparent 55%, rgba(120, 70, 25, .22) 100%);
+  --gutter: linear-gradient(transparent, transparent);
+  font-family: 'EB Garamond', 'Noto Serif', Georgia, serif;
+  color: var(--ink);
+  background-color: var(--paper);
+  background-image: var(--gutter), var(--stains), var(--vignette), var(--fiber), var(--grain), linear-gradient(180deg, var(--paper-light), var(--paper));
+  box-shadow: inset 0 0 0 1px rgba(110, 62, 25, .18);
+  border-radius: 2px !important;
+}
+.pg:nth-child(3n) { --stains: radial-gradient(30% 20% at 20% 18%, rgba(160,100,40,.10), transparent 70%), radial-gradient(26% 18% at 80% 72%, rgba(150,90,35,.08), transparent 70%); }
+.pg:nth-child(3n+1) { --stains: radial-gradient(34% 22% at 70% 62%, rgba(160,100,40,.09), transparent 70%), radial-gradient(14% 10% at 22% 28%, rgba(140,80,30,.09), transparent 75%); }
+/* Gáy sách sẫm hơn, mép ngoài hơi tối như giấy cũ */
+.pg.--left { --gutter: linear-gradient(270deg, rgba(70, 35, 10, .32), rgba(70, 35, 10, .08) 6%, transparent 14%), linear-gradient(90deg, rgba(110, 62, 25, .14), transparent 4%); background-image: var(--gutter), var(--stains), var(--vignette), var(--fiber), var(--grain), linear-gradient(180deg, var(--paper-light), var(--paper)); }
+.pg.--right { --gutter: linear-gradient(90deg, rgba(70, 35, 10, .32), rgba(70, 35, 10, .08) 6%, transparent 14%), linear-gradient(270deg, rgba(110, 62, 25, .14), transparent 4%); background-image: var(--gutter), var(--stains), var(--vignette), var(--fiber), var(--grain), linear-gradient(180deg, var(--paper-light), var(--paper)); }
+
+/* Khung viền kép bằng mực nâu */
+.pg:not(.pg-hard)::before {
+  content: ""; position: absolute; inset: 14px; z-index: 0; pointer-events: none;
+  border: 1px solid var(--ink-faint);
+  outline: 1px solid rgba(110, 62, 25, .25); outline-offset: 4px;
+}
+.pg-body, .pg-art { z-index: 1; }
+.pg-body { padding: 34px 36px 50px; }
+
+/* Chữ */
+.pg-kicker { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-weight: 600; text-transform: none; letter-spacing: .02em; font-size: 15px; color: var(--cinnabar); }
+.pg-title { font-family: 'Playfair Display', Georgia, serif; font-weight: 700; font-size: clamp(22px, 2.6vw, 28px); color: #3b1f0e; letter-spacing: -0.005em; }
+.pg-title::after { content: "❦"; display: block; margin-top: 6px; font-size: 16px; color: rgba(155, 42, 23, .7); font-weight: 400; }
+.pg-badge-page .pg-title::after { text-align: center; }
+.pg-prose { font-size: 17.5px; line-height: 1.6; color: var(--ink-soft); text-align: justify; hyphens: auto; }
+.pg-story::first-letter {
+  font-family: 'Playfair Display', Georgia, serif; font-weight: 800; font-size: 3.4em; line-height: .82;
+  color: var(--cinnabar); float: left; margin: 6px 10px 0 0; padding: 6px 8px 4px;
+  border: 1px solid rgba(155, 42, 23, .45); outline: 1px solid rgba(155, 42, 23, .2); outline-offset: 2px;
+  background: rgba(240, 184, 71, .14);
+}
+.pg-hint { font-style: italic; font-size: 15px; color: var(--ink-soft); }
+.pg-hint i { color: var(--cinnabar); }
+.pg-folio { font-family: 'EB Garamond', Georgia, serif; font-style: italic; font-size: 15px; bottom: 22px; color: var(--ink-soft); letter-spacing: .05em; }
+.pg-folio::before { content: "· "; }
+.pg-folio::after { content: " ·"; }
+
+/* Mục lục kiểu sách xưa: số La Mã, đường chấm dẫn tới số trang */
+.pg-toc button { border-bottom: 0; padding: 8px 2px; grid-template-columns: 34px 1fr auto; border-radius: 0; font-family: inherit; }
+.pg-toc button:hover { background: rgba(155, 42, 23, .07); }
+.toc-n { background: transparent; color: var(--cinnabar); border: 1px solid rgba(155, 42, 23, .45); border-radius: 0; font-family: 'Playfair Display', Georgia, serif; font-size: 14px; width: 30px; height: 30px; }
+.toc-t { font-size: 17px; font-weight: 500; display: flex; flex-direction: column; position: relative; }
+.toc-t small { font-style: italic; font-size: 14px; color: var(--ink-soft); }
+.toc-p { font-style: italic; font-size: 16px; color: var(--ink-soft); position: relative; padding-left: 8px; }
+.pg-toc li { border-bottom: 1px dotted var(--ink-faint); }
+
+/* Trang tranh: tranh in dán vào trang, có chú thích */
+.pg-art { background: none; padding: 34px 34px 54px; gap: 14px; justify-content: flex-start; }
+.pg-art::after { display: none; }
+.pg-plate { position: relative; flex: 1 1 auto; min-height: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.pg-plate img {
+  position: static; flex: 1 1 auto; min-height: 0; width: 100%; height: auto; object-fit: cover;
+  filter: sepia(.32) saturate(.82) contrast(.96) brightness(.98);
+  border: 1px solid rgba(90, 50, 20, .55);
+  box-shadow: 0 0 0 5px #f4e6c6, 0 0 0 6px rgba(90, 50, 20, .35), 0 8px 16px -6px rgba(60, 30, 10, .45);
+}
+.pg-plate .pg-art-icon { position: static; align-self: center; margin: auto; font-size: 84px; color: var(--cinnabar); opacity: .7; }
+.pg-plate img ~ .pg-art-icon { display: none; }
+.pg-plate figcaption { font-style: italic; font-size: 13.5px; line-height: 1.4; color: var(--ink-soft); text-align: center; padding: 6px 8px 0; }
+.pg-seed { font-size: 18px; font-style: italic; font-weight: 500; color: var(--ink); text-align: center; border-top: 1px solid var(--ink-faint); padding-top: 10px; }
+.pg-seed small { font-style: normal; font-family: 'Playfair Display', Georgia, serif; font-size: 12px; letter-spacing: .14em; color: var(--cinnabar); }
+
+/* Nút & mini-game trong sách: viền mực, góc vuông kiểu xưa */
+.pg .btn { border-radius: 3px; font-family: 'EB Garamond', Georgia, serif; font-size: 17px; font-weight: 600; letter-spacing: .01em; }
+.pg .btn-primary { background: #8e2a17; box-shadow: inset 0 0 0 1px rgba(255, 220, 160, .35), 0 6px 14px -8px rgba(90, 30, 10, .8); }
+.pg .btn-primary:hover { background: #74200f; }
+.pg .btn-ghost { background: rgba(255, 248, 230, .5); border: 1px solid var(--ink-faint); color: var(--ink); }
+.pg .btn-quiet { color: var(--cinnabar); }
+.pg .option, .pg .chip, .pg .wish-list label, .pg .answer-line {
+  border-radius: 3px; background: rgba(255, 250, 236, .55); border-color: rgba(110, 62, 25, .38);
+  font-family: inherit; font-size: 16.5px; color: var(--ink);
+}
+.pg .option:hover, .pg .chip:hover { background: rgba(155, 42, 23, .07); border-color: var(--cinnabar); }
+.pg .option.is-right, .pg .chip.is-matched { background: rgba(46, 125, 79, .1); border-color: #2e7d4f; }
+.pg .option.is-wrong { background: rgba(198, 40, 40, .08); }
+.pg .chip.is-selected { background: rgba(155, 42, 23, .1); border-color: var(--cinnabar); }
+.pg .input { border-radius: 3px; background: rgba(255, 252, 242, .8); border-color: rgba(110, 62, 25, .38); font-family: inherit; font-size: 16px; }
+.pg .game-head h4 { font-family: 'Playfair Display', Georgia, serif; font-size: 19px; }
+.pg .game-head h4 i { color: var(--cinnabar); }
+.pg .game-prompt { font-size: 16.5px; color: var(--ink-soft); font-style: italic; }
+.pg .feedback { font-style: italic; font-size: 15.5px; }
+.pg .game-done { border-radius: 3px; background: rgba(240, 184, 71, .16); border-color: rgba(160, 110, 30, .5); }
+.pg .game-done .medal { background: radial-gradient(circle at 35% 30%, #f3d98a, #c99a3b 60%, #8a6418); color: #3b2405; }
+.pg .event-meta dt { font-style: italic; font-size: 14px; }
+.pg .event-meta dd { font-size: 17px; }
+.pg .soon { border-radius: 2px; background: rgba(155, 42, 23, .08); color: var(--cinnabar); font-style: italic; }
+
+/* Huy hiệu: huy chương đồng cổ */
+.pg-medal { border-radius: 50%; background: rgba(110, 62, 25, .06); border: 1px dashed var(--ink-faint); }
+.pg-medal.is-on {
+  background: radial-gradient(circle at 34% 28%, #f6e2a0 0%, #d6a947 38%, #9c6f1f 72%, #6d4a10 100%);
+  box-shadow: 0 0 0 6px #f4e6c6, 0 0 0 7px rgba(140, 95, 30, .55), 0 12px 24px -10px rgba(90, 55, 10, .7);
+  color: #3b2405;
+}
+.pg-badges .badge { border-radius: 3px; background: rgba(255, 250, 236, .55); border-color: rgba(110, 62, 25, .3); font-family: inherit; }
+.pg-badges .badge h4 { font-family: 'Playfair Display', Georgia, serif; font-size: 14px; }
+.pg-badges .badge p { font-style: italic; font-size: 13.5px; }
+.pg-badges .badge.is-unlocked { background: rgba(240, 184, 71, .16); border-color: rgba(160, 110, 30, .55); }
+.pg-badges .badge.is-unlocked .disc { background: radial-gradient(circle at 34% 28%, #f6e2a0, #c99a3b 60%, #7c5514); box-shadow: none; }
+
+/* Bìa: da sơn mài cũ, nhũ vàng, góc bọc đồng */
+.pg-hard, .pg-hard.--left, .pg-hard.--right, .pg-hard.--portrait {
+  background-color: #5a140a;
+  background-image:
+    linear-gradient(135deg, #c9a24c 0 26px, transparent 26px),
+    linear-gradient(225deg, #c9a24c 0 26px, transparent 26px),
+    linear-gradient(45deg, #c9a24c 0 26px, transparent 26px),
+    linear-gradient(315deg, #c9a24c 0 26px, transparent 26px),
+    var(--grain),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='l'%3E%3CfeTurbulence type='turbulence' baseFrequency='.035' numOctaves='4' seed='3'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .28 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23l)'/%3E%3C/svg%3E"),
+    radial-gradient(120% 90% at 35% 25%, #9a2716 0%, #6b170b 50%, #3a0a04 100%);
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, repeat, repeat, no-repeat;
+  background-position: top left, top right, bottom left, bottom right, 0 0, 0 0, 0 0;
+  background-size: 52px 52px, 52px 52px, 52px 52px, 52px 52px, auto, auto, 100% 100%;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .4), inset 0 0 70px rgba(0, 0, 0, .55), inset 6px 0 10px -4px rgba(0, 0, 0, .5);
+  border-radius: 3px !important;
+}
+.pg-cover-frame { inset: 30px; border: 2px solid rgba(214, 172, 82, .8); box-shadow: inset 0 0 0 5px rgba(58, 10, 4, .5), inset 0 0 0 6px rgba(214, 172, 82, .45); border-radius: 0; }
+.pg-cover-frame::before, .pg-cover-frame::after { content: "❦"; position: absolute; left: 50%; transform: translateX(-50%); color: #d6ac52; font-size: 22px; }
+.pg-cover-frame::before { top: 10px; }
+.pg-cover-frame::after { bottom: 10px; transform: translateX(-50%) rotate(180deg); }
+.pg-cover-title {
+  font-family: 'Playfair Display', Georgia, serif; font-weight: 800; letter-spacing: 0; font-size: clamp(40px, 5.6vw, 58px);
+  background: linear-gradient(180deg, #fbe7ad 0%, #d9ad4f 45%, #a57a26 60%, #f3d68a 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  text-shadow: none; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, .45));
+}
+.pg-cover-kicker { font-family: 'Playfair Display', Georgia, serif; font-style: italic; text-transform: none; letter-spacing: .06em; font-size: 16px; color: #d6ac52; }
+.pg-cover-sub { font-family: 'EB Garamond', Georgia, serif; font-style: italic; font-size: 18px; color: rgba(246, 226, 182, .85); }
+.pg-seal { border-radius: 4px; background: #b5311c; color: #fbe7c4; border: 2px solid rgba(251, 231, 196, .5); font-family: 'Playfair Display', Georgia, serif; box-shadow: 0 4px 10px rgba(0, 0, 0, .45); }
+.pg-cover-open { border-radius: 2px; font-family: 'EB Garamond', Georgia, serif; font-size: 17px; border-color: rgba(214, 172, 82, .8); color: #f6e2b6; }
+
+/* Độ dày sách: mép giấy xếp lớp phía ngoài */
+.pg.--right:not(.pg-hard) { box-shadow: inset 0 0 0 1px rgba(110, 62, 25, .18), 1px 0 0 #e6d3ad, 2px 0 0 #cdb486, 3px 0 0 #e6d3ad, 4px 0 0 #c4a978; }
+.pg.--left:not(.pg-hard) { box-shadow: inset 0 0 0 1px rgba(110, 62, 25, .18), -1px 0 0 #e6d3ad, -2px 0 0 #cdb486, -3px 0 0 #e6d3ad, -4px 0 0 #c4a978; }
+
+@media (max-width: 560px) {
+  .pg-body { padding: 28px 26px 46px; }
+  .pg-art { padding: 28px 26px 48px; }
+  .pg-prose { font-size: 16.5px; }
+  .pg-title { font-size: 22px; }
+  .pg-seed { font-size: 16.5px; }
+  .pg .option, .pg .chip, .pg .wish-list label { font-size: 15.5px; }
+}

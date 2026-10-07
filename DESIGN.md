@@ -156,6 +156,16 @@ Mỗi component chỉ dùng biến (`var(--text)`, `var(--surface)`...), nên đ
 | Nội dung | 15–17px | 400 | Đoạn truyện, mô tả |
 | Chú thích | 12–14px | 400–600 | Ghi chú dưới ô nhập |
 
+### 4.3b Phong cách sách cổ (riêng quyển sách)
+Quyển sách ở S02 có ngôn ngữ riêng, gợi cảm giác sách xưa để hợp chủ đề truyền thống:
+- **Chữ:** `EB Garamond` (nội dung, chú thích, nút trong sách) và `Playfair Display` (tiêu đề, chữ cái đầu đoạn). Cả hai có bộ ký tự tiếng Việt. Phần còn lại của trang vẫn dùng Be Vietnam Pro.
+- **Giấy:** nền ngà `#efdfbd`, nhiễu thớ giấy và sợi giấy dó bằng SVG `feTurbulence`, vết ố bằng `radial-gradient` (mỗi trang một kiểu theo `:nth-child`), mép trang tối dần, gáy sách đậm.
+- **Trang trí:** khung viền kép mực nâu, hoa văn ❦ dưới tiêu đề, chữ cái đầu đoạn đóng khung đỏ son, số trang `· n ·`, mục lục số La Mã với đường chấm.
+- **Tranh:** dạng tranh in dán vào trang (viền mat, sepia nhẹ), có chú thích "Hình I.".
+- **Bìa:** da sơn mài có vân sờn, bốn góc bọc đồng, tên sách nhũ vàng (`background-clip: text`).
+- **Độ dày:** mép giấy xếp lớp bằng nhiều lớp `box-shadow` ở cạnh ngoài.
+- Màu mực dùng biến riêng trong `.pg`: `--ink`, `--ink-soft`, `--cinnabar`, `--paper`.
+
 ### 4.4 Bo góc, khoảng cách, đổ bóng
 
 | Token | Giá trị | Quy tắc |

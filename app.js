@@ -270,6 +270,7 @@
   };
 
   // ---------- Dựng các trang
+  const ROMAN = ['I', 'II', 'III', 'IV'];
   const pageHTML = [];
   const folio = (n) => `<span class="pg-folio" aria-hidden="true">${n}</span>`;
   pageHTML[P.cover] = `
@@ -292,21 +293,23 @@
     <div class="pg-body">
       <p class="pg-kicker">Mục lục</p>
       <ol class="pg-toc">
-        ${CHAPTERS.map((c, i) => `<li><button type="button" data-goto="${P.art(i)}"><span class="toc-n">${i + 1}</span><span class="toc-t">${c.title}<small>${c.meaning}</small></span><span class="toc-p">${P.art(i)}</span></button></li>`).join('')}
+        ${CHAPTERS.map((c, i) => `<li><button type="button" data-goto="${P.art(i)}"><span class="toc-n">${ROMAN[i]}</span><span class="toc-t">${c.title}<small>${c.meaning}</small></span><span class="toc-p">${P.art(i)}</span></button></li>`).join('')}
         <li><button type="button" data-goto="${P.summary}"><span class="toc-n"><i class="ph ph-medal" aria-hidden="true"></i></span><span class="toc-t">Bộ huy hiệu và sự kiện</span><span class="toc-p">${P.summary}</span></button></li>
       </ol>
     </div>${folio(2)}`;
   CHAPTERS.forEach((c, i) => {
     pageHTML[P.art(i)] = `
       <div class="pg-art" style="--pos:${c.pos || 'center'}">
-        <img src="${c.img}" alt="${c.alt}" loading="lazy" decoding="async" onerror="this.remove()">
-        <i class="ph ph-${c.icon} pg-art-icon" aria-hidden="true"></i>
-        <span class="pg-art-num" aria-hidden="true">${i + 1}</span>
+        <figure class="pg-plate">
+          <img src="${c.img}" alt="${c.alt}" loading="lazy" decoding="async" onerror="this.remove()">
+          <i class="ph ph-${c.icon} pg-art-icon" aria-hidden="true"></i>
+          <figcaption>Hình ${ROMAN[i]}. ${c.alt}</figcaption>
+        </figure>
         <p class="pg-seed"><small>Câu hỏi gieo</small>${c.seed}</p>
       </div>${folio(P.art(i))}`;
     pageHTML[P.text(i)] = `
       <div class="pg-body">
-        <p class="pg-kicker">Chương ${i + 1} · ${c.meaning}</p>
+        <p class="pg-kicker">Chương ${ROMAN[i]} · ${c.meaning}</p>
         <h3 class="pg-title">${c.title}</h3>
         <p class="pg-prose pg-story">${c.story}</p>
         <div class="pg-tools">
