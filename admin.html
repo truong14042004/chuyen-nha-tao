@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Quản trị · Chuyện Nhà Táo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { background: var(--bg); }
+    .adm { max-width: 1240px; margin: 0 auto; padding: 24px 16px 64px; display: grid; gap: 20px; }
+    .adm-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+    .adm-head h1 { font-size: clamp(22px, 3vw, 30px); font-weight: 800; display: flex; gap: 10px; align-items: center; }
+    .adm-head .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .adm .card { padding: clamp(16px, 3vw, 24px); }
+    .login { max-width: 420px; margin: 8vh auto 0; display: grid; gap: 12px; }
+    .login h2 { font-size: 20px; font-weight: 800; }
+    .notice { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 14px; background: var(--gold-soft); font-size: 14.5px; line-height: 1.5; }
+    .notice i { font-size: 22px; color: var(--gold-ink); flex: none; }
+    .notice code { font-size: 13px; background: rgba(255,255,255,.6); padding: 1px 5px; border-radius: 4px; }
+    .tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 640px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .tile { padding: 14px 16px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); display: grid; gap: 2px; }
+    .tile b { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .tile span { font-size: 13.5px; color: var(--text-muted); }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .toolbar .input { max-width: 320px; }
+    .tbl-wrap { overflow-x: auto; border-radius: 14px; border: 1px solid var(--line); }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--surface); }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    th { position: sticky; top: 0; background: var(--surface-2); font-size: 12.5px; font-weight: 700; color: var(--text-muted); cursor: pointer; user-select: none; }
+    th[aria-sort="ascending"]::after { content: " ▲"; } th[aria-sort="descending"]::after { content: " ▼"; }
+    td.num { font-variant-numeric: tabular-nums; text-align: right; }
+    td .mono { font-family: ui-monospace, Consolas, monospace; font-weight: 700; }
+    .bar { display: inline-block; vertical-align: middle; width: 70px; height: 6px; border-radius: 3px; background: var(--line); margin-left: 8px; overflow: hidden; }
+    .bar i { display: block; height: 100%; background: var(--accent); }
+    .dots { display: inline-flex; gap: 3px; } .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line-strong); } .dots i.on { background: var(--accent); }
+    .empty { padding: 28px; text-align: center; color: var(--text-muted); }
+    .qr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
+    .qr-card { padding: 16px; border-radius: 16px; background: #fff; border: 1px solid var(--line-strong); display: grid; justify-items: center; gap: 8px; text-align: center; color: #2a1710; }
+    .qr-card strong { font-size: 16px; } .qr-card code { font-size: 15px; font-weight: 800; letter-spacing: .12em; }
+    .qr-card small { font-size: 11px; color: #6b5444; word-break: break-all; }
+    .sec-title { font-size: 18px; font-weight: 800; margin-bottom: 4px; } .sec-sub { color: var(--text-muted); font-size: 14.5px; margin-bottom: 14px; }
+    @media print {
+      .adm-head, #people, #tiles, .notice, .no-print { display: none !important; }
+      .adm { padding: 0; } .card { box-shadow: none; border: 0; }
+      .qr-grid { grid-template-columns: repeat(2, 1fr); } .qr-card { break-inside: avoid; border: 2px solid #000; }
+    }
+  </style>
+</head>
+<body>
+  <main class="adm">
+    <!-- Đăng nhập bằng mật khẩu quản trị (ADMIN_KEY trên Vercel) -->
+    <form class="card login" id="login" hidden>
+      <h2><i class="ph ph-lock-key" aria-hidden="true"></i> Quản trị Chuyện Nhà Táo</h2>
+      <p class="help">Nhập mật khẩu quản trị để xem số liệu người tham gia.</p>
+      <label class="dlg-label" for="adm-key">Mật khẩu quản trị</label>
+      <input class="input" id="adm-key" type="password" autocomplete="current-password" required>
+      <p class="error-text" id="login-err" aria-live="polite"></p>
+      <button class="btn btn-primary" type="submit">Xem số liệu</button>
+    </form>
+
+    <div id="app" hidden>
+      <header class="adm-head">
+        <h1><i class="ph ph-chart-bar" aria-hidden="true"></i> Số liệu người tham gia</h1>
+        <div class="actions">
+          <button class="btn btn-ghost btn-sm" type="button" id="btn-reload"><i class="ph ph-arrow-clockwise" aria-hidden="true"></i> Tải lại</button>
+          <button class="btn btn-ghost btn-sm" type="button" id="btn-csv"><i class="ph ph-download-simple" aria-hidden="true"></i> Xuất CSV</button>
+          <button class="btn btn-quiet btn-sm" type="button" id="btn-logout">Đăng xuất</button>
+        </div>
+      </header>
+
+      <div class="notice" id="notice" hidden></div>
+      <div class="tiles" id="tiles"></div>
+
+      <section class="card" id="people" aria-labelledby="people-title">
+        <div class="toolbar">
+          <div><h2 class="sec-title" id="people-title">Theo từng mã thẻ</h2><p class="sec-sub" id="people-sub"></p></div>
+          <input class="input" id="search" type="search" placeholder="Tìm mã thẻ hoặc tên" aria-label="Tìm mã thẻ hoặc tên">
+        </div>
+        <div class="tbl-wrap"><table>
+          <thead><tr>
+            <th data-k="pid">Mã thẻ</th><th data-k="name">Tên</th>
+            <th data-k="flips">Lượt lật trang</th><th data-k="pagesN">Trang đã xem</th><th data-k="last">Đang xem</th>
+            <th data-k="chaptersN">Chương đã nghe</th><th data-k="stampsN">Dấu trạm</th><th data-k="prizesTxt">Quà vòng quay</th>
+            <th data-k="seen">Hoạt động gần nhất</th>
+          </tr></thead>
+          <tbody id="rows"></tbody>
+        </table></div>
+      </section>
+
+      <section class="card" aria-labelledby="qr-title">
+        <div class="toolbar">
+          <div><h2 class="sec-title" id="qr-title">Mã QR in cho sự kiện</h2>
+          <p class="sec-sub">Dán ở cổng check-in và bốn trạm. Người chơi mở camera điện thoại quét là vào thẳng trang.</p></div>
+          <button class="btn btn-primary btn-sm no-print" type="button" onclick="window.print()"><i class="ph ph-printer" aria-hidden="true"></i> In mã QR</button>
+        </div>
+        <div class="qr-grid" id="qr-grid"></div>
+      </section>
+    </div>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+  <script src="admin.js" defer></script>
+</body>
+</html>

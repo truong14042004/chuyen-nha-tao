@@ -51,6 +51,57 @@
   });
 
   /* ======================================================================
+   * Đo lường theo từng người (nhóm yêu cầu: admin xem mỗi ID lật bao nhiêu trang).
+   * vid: mã ngẫu nhiên của trình duyệt này; có thẻ thì gửi kèm mã thẻ và tên.
+   * Sự kiện được gom lại, gửi lên /api/track vài giây một lần và khi rời trang;
+   * mất mạng thì giữ trong máy để gửi sau. Đồng thời cộng dồn trên máy (cnt_stats)
+   * để trang quản trị vẫn xem được dữ liệu của máy này khi chưa nối kho dữ liệu.
+   * ==================================================================== */
+  const meter = {
+    vid: store.get('vid', null),
+    q: store.get('q', []),
+    off: false,
+    timer: 0,
+    stats: Object.assign({ flips: 0, pages: [], last: null }, store.get('stats', {}))
+  };
+  if (!meter.vid) {
+    meter.vid = 'v-' + (window.crypto && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 12));
+    store.set('vid', meter.vid);
+  }
+  function measure(t, data = {}) {
+    meter.q.push(Object.assign({ t, ts: Date.now() }, data));
+    if (meter.q.length > 300) meter.q.splice(0, meter.q.length - 300);
+    store.set('q', meter.q);
+    if (t === 'flip') {
+      const st = meter.stats;
+      st.flips++; st.last = data.p;
+      if (!st.pages.includes(data.p)) st.pages.push(data.p);
+      store.set('stats', st);
+    }
+    clearTimeout(meter.timer);
+    meter.timer = setTimeout(() => flushMeter(), 4000);
+  }
+  function flushMeter(leaving) {
+    if (meter.off || !meter.q.length || !navigator.onLine) return;
+    const events = meter.q.slice();
+    const body = JSON.stringify({ vid: meter.vid, pid: pass ? pass.id : null, name: pass ? pass.nickname : '', events });
+    const sent = () => { meter.q.splice(0, events.length); store.set('q', meter.q); };
+    if (leaving && navigator.sendBeacon) {
+      if (navigator.sendBeacon('/api/track', new Blob([body], { type: 'application/json' }))) sent();
+      return;
+    }
+    fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive: true })
+      .then((r) => {
+        if (r.ok) sent();
+        // Chưa có API (chạy ở máy) hoặc chưa nối kho dữ liệu: thôi gửi trong lần mở trang này
+        else if ([404, 405, 501, 503].includes(r.status)) meter.off = true;
+      })
+      .catch(() => { /* mất mạng: giữ hàng đợi, gửi lần sau */ });
+  }
+  window.addEventListener('pagehide', () => flushMeter(true));
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushMeter(true); });
+
+  /* ======================================================================
    * Toast — microcopy giọng ấm áp, không phán xét (PDF mục E)
    * ==================================================================== */
   function toast(msg, type = 'info', icon) {
@@ -193,6 +244,7 @@
   window.addEventListener('online', () => {
     syncOnline();
     if (pass && !pass.synced) syncPass(); else toast('Đã có mạng lại.', 'ok', 'wifi-high');
+    flushMeter();
   });
   window.addEventListener('offline', syncOnline);
   syncOnline();
@@ -342,7 +394,7 @@
       <p class="pg-kicker">Lời mở đầu</p>
       <h3 class="pg-title">Gửi người giữ lửa</h3>
       <p class="pg-prose">Ngày 23 tháng Chạp, ông Táo cưỡi cá chép về trời, kể lại một năm của mỗi gia đình. Cuốn sách nhỏ này mời bạn ngồi bên bếp lửa, đọc bốn câu chuyện về hướng thiện, mái ấm, nếp nhà và điều tốt lành.</p>
-      <p class="pg-prose">Cuối mỗi chương có một câu chuyện nhỏ để bạn lắng nghe. Nghe xong là mở huy hiệu, rồi mang bốn huy hiệu đến sự kiện nhé.</p>
+      <p class="pg-prose">Cuối mỗi chương có một câu chuyện nhỏ để bạn lắng nghe. Sách là phần đọc thêm, không bắt buộc: bạn có thể đến thẳng sự kiện, nhận thẻ ở cổng và đi bốn trạm.</p>
       <p class="pg-hint"><i class="ph ph-hand-swipe-right" aria-hidden="true"></i> Kéo góc trang hoặc vuốt ngang để lật</p>
     </div>${folio(1)}`;
   pageHTML[P.toc] = `
@@ -476,6 +528,7 @@
   }
 
   function onPageChange(p) {
+    if (p !== book.page) measure('flip', { p });
     book.page = p;
     store.set('page', p);
     stopVoice();
@@ -721,6 +774,7 @@
     sound.chime();
     track('chapter_complete', { chapter: i + 1 });
     if (first) {
+      measure('listen', { ch: i + 1 });
       track('badge_unlocked', { badge: CHAPTERS[i].badge.name });
       toast(`Bạn vừa mở ${CHAPTERS[i].badge.name}.`, 'gold', 'medal');
     }
@@ -764,7 +818,56 @@
   const ALPHA = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // bỏ ký tự dễ nhầm (0/O, 1/I/L)
   const randCode = (n) => Array.from({ length: n }, () => ALPHA[Math.floor(Math.random() * ALPHA.length)]).join('');
 
-  let pass = store.get('pass', null); // { id, nickname, email?, consent, stamps:[], giftCode, claimed, synced, offlineId? }
+  let pass = store.get('pass', null); // { id, nickname, email?, consent, stamps:[], giftCode, claimed, synced, offlineId?, spins? }
+
+  // Thẻ thông hành chỉ phát tại sự kiện (nhóm chốt): mã QR ở cổng check-in mở trang
+  // với ?vao=CONG23. Không quét được thì nhập mã in dưới QR. Đổi mã mỗi sự kiện nếu cần.
+  const GATE_CODE = 'CONG23';
+  const checkedIn = () => Boolean(store.get('checkin', null) || pass);
+  function renderRegister() {
+    const open = checkedIn(), has = Boolean(pass) && !store.get('new_pass', false);
+    $('#register-gate').hidden = open;
+    $('#register-open').hidden = !open || has;
+    const box = $('#register-has');
+    box.hidden = !has;
+    if (!has) return;
+    // Đã có thẻ: không cho tạo đè (mất dấu đã đóng) trừ khi xác nhận
+    box.innerHTML = `
+      <span class="gate-ico" aria-hidden="true"><i class="ph ph-identification-card"></i></span>
+      <h3>Bạn đã có thẻ thông hành</h3>
+      <p class="lead">Mã thẻ <strong class="mono">${esc(pass.id)}</strong> mang tên <strong>${esc(pass.nickname)}</strong>, đã đóng ${pass.stamps.length}/4 dấu. Hộ chiếu ở bên cạnh.</p>
+      <button class="linklike" type="button" id="btn-new-pass">Không phải bạn? Tạo thẻ khác</button>`;
+    $('#btn-new-pass').addEventListener('click', async () => {
+      const v = await ask({
+        tone: 'danger',
+        title: 'Tạo thẻ khác trên máy này?',
+        html: `<p>Thẻ <strong>${esc(pass.id)}</strong> cùng ${pass.stamps.length}/4 dấu sẽ không còn trên máy này. Nên chụp lại mã thẻ trước để nhân sự hỗ trợ lấy lại khi cần.</p>`,
+        buttons: [{ label: 'Giữ thẻ hiện tại', value: 'cancel', cls: 'btn-primary' }, { label: 'Tạo thẻ khác', value: 'ok', cls: 'btn-danger' }]
+      });
+      if (v !== 'ok') return;
+      store.set('new_pass', true);
+      track('new_pass_requested');
+      renderRegister();
+      $('#f-nickname').focus();
+    });
+  }
+  function enterGate(raw, from) {
+    const code = String(raw || '').trim().toUpperCase();
+    const input = $('#f-gate');
+    if (code !== GATE_CODE) {
+      toast('Mã cổng chưa đúng. Mã in ngay dưới QR ở cổng check-in, bạn xem lại giúp nhé.', 'err');
+      if (input) { input.classList.remove('shake'); void input.offsetWidth; input.classList.add('shake'); }
+      return false;
+    }
+    store.set('checkin', { at: Date.now(), from });
+    track('gate_checkin', { from });
+    measure('checkin');
+    renderRegister();
+    toast('Chào mừng bạn đến sự kiện. Nhập tên để nhận thẻ thông hành nhé.', 'ok', 'door-open');
+    setTimeout(() => { $('#register').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' }); $('#f-nickname').focus({ preventScroll: true }); }, 300);
+    return true;
+  }
+  $('#form-gate').addEventListener('submit', (e) => { e.preventDefault(); enterGate($('#f-gate').value, 'code'); });
 
   // Trùng nickname (góp ý 4b). Bản thử nghiệm chưa có máy chủ: danh sách tên đã có là dữ liệu giả lập
   // + tên đã đăng ký trên máy này. Khi có API thì thay isTaken bằng lệnh hỏi máy chủ.
@@ -786,6 +889,7 @@
     store.set('registry', [...new Set([...store.get('registry', []), plain(pass.nickname)])]);
     track('offline_id_synced', { renamed });
     renderTicket();
+    renderRegister();
     toast(`Đã đồng bộ thẻ. Mã chính thức của bạn: ${pass.id}.` + (renamed ? ` Tên bị trùng nên được đổi thành "${esc(pass.nickname)}".` : ''), 'ok', 'wifi-high');
   }
 
@@ -864,6 +968,9 @@
       };
       store.set('pass', pass);
       if (!offline) store.set('registry', [...new Set([...store.get('registry', []), plain(nickname)])]);
+      measure('register');
+      store.set('new_pass', false);
+      renderRegister();
       track('form_submit');
       track(consent ? 'consent_accepted' : 'consent_declined');
       track('virtual_id_created', { offline });
@@ -875,6 +982,8 @@
       $('#form-register').reset();
       renderTicket(true);
       if (window.innerWidth < 1000) $('#ticket-slot').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+      const pending = store.get('pending_stamp', null);
+      if (pending) { store.set('pending_stamp', null); setTimeout(() => addStamp(pending), 1800); }
     }, 700);
   });
 
@@ -1029,7 +1138,7 @@
     if (n === PP.guide) return `<div class="pp-page">
         ${ppHead('HÀNH TRÌNH', 'TRANG 2')}
         <h4 class="pp-title">Bốn trạm, bốn dấu</h4>
-        <p class="pp-note">Mỗi trạm đóng một dấu vào trang visa riêng. Đủ bốn dấu thì nhận quà ở bàn check-out.</p>
+        <p class="pp-note">Mỗi trạm đóng một dấu vào trang visa riêng và được quay thưởng một lần. Đủ bốn dấu thì nhận quà ở bàn check-out.</p>
         <ol class="pp-route">${STATIONS.map((s) => {
           const on = pass.stamps.includes(s.id);
           return `<li class="${on ? 'is-on' : ''}"><button type="button" data-ppgo="${PP.visa(s.id)}">
@@ -1041,7 +1150,7 @@
       </div>`;
     const id = n - 2;
     if (id >= 1 && id <= 4) {
-      const s = STATIONS[id - 1], on = pass.stamps.includes(id), st = STAMP_STYLE[id], photo = moments[String(id)];
+      const s = STATIONS[id - 1], on = pass.stamps.includes(id), st = STAMP_STYLE[id], photo = moments[String(id)], spin = spinOf(id);
       return `<div class="pp-page pp-visa" style="--ink:${st.ink}">
         ${ppHead('VISA · TRẠM ' + ROMAN_ST[id - 1], 'TRANG ' + n)}
         <h4 class="pp-title">${s.name}</h4>
@@ -1052,7 +1161,11 @@
             : `<p class="pp-empty"><i class="ph ph-stamp" aria-hidden="true"></i>Chỗ đóng dấu<small>Đến ${s.name} và đưa mã QR cho nhân sự</small></p>`}
           ${on && photo ? `<figure class="pp-polaroid" style="--r:${id % 2 ? 4 : -5}deg"><img src="${photo}" alt="Khoảnh khắc ở ${s.name}"><button class="pp-polaroid-btn" type="button" data-moment="${id}" aria-label="Đổi ảnh khoảnh khắc ở ${s.name}"><i class="ph ph-camera" aria-hidden="true"></i></button></figure>` : ''}
         </div>
-        ${on && !photo ? `<button class="pp-photo-add" type="button" data-moment="${id}"><i class="ph ph-camera-plus" aria-hidden="true"></i> Lưu khoảnh khắc ở trạm này</button>` : ''}
+        ${on ? `<div class="pp-visa-foot">
+          ${spin ? `<p class="pp-prize ${spin.prize === 'none' ? 'is-miss' : ''}"><i class="ph-fill ph-${PRIZES[spin.prize].icon}" aria-hidden="true"></i>${PRIZES[spin.prize].label}</p>`
+            : `<button class="pp-photo-add pp-spin" type="button" data-spin="${id}"><i class="ph ph-spiral" aria-hidden="true"></i> Quay thưởng</button>`}
+          ${photo ? '' : `<button class="pp-photo-add" type="button" data-moment="${id}"><i class="ph ph-camera-plus" aria-hidden="true"></i> Lưu ảnh</button>`}
+        </div>` : ''}
       </div>`;
     }
     if (n === PP.done) return `<div class="pp-page">
@@ -1152,7 +1265,8 @@
     });
     bookEl.addEventListener('click', (e) => {
       const b = e.target.closest('[data-ppgo]'); if (b) { ppGo(+b.dataset.ppgo); return; }
-      const m = e.target.closest('[data-moment]'); if (m) pickMoment(m.dataset.moment);
+      const m = e.target.closest('[data-moment]'); if (m) { pickMoment(m.dataset.moment); return; }
+      const w = e.target.closest('[data-spin]'); if (w) openWheel(+w.dataset.spin);
     });
 
     const PF = window.St && window.St.PageFlip;
@@ -1189,6 +1303,103 @@
     renderCheckout();
   }
 
+  /* ----------------------------------------------------------------------
+   * Vòng quay may mắn (nhóm đề xuất): đóng dấu xong ở trạm nào thì quay một lần ở trạm đó.
+   * Ô trên vòng to nhỏ đúng theo tỉ lệ trúng (share, tổng 100). Nhóm chỉnh share theo số quà thực có.
+   * Bản thử nghiệm quay trên máy người chơi; khi có máy chủ nên để máy chủ quyết định kết quả.
+   * -------------------------------------------------------------------- */
+  const PRIZES = {
+    sticker: { label: 'Sticker Táo Quân', short: 'Sticker', icon: 'sticker', color: '#c7321a' },
+    keychain: { label: 'Móc khoá cá chép', short: 'Móc khoá', icon: 'key', color: '#d08a12' },
+    none: { label: 'Chúc may mắn lần sau', short: 'Lần sau', icon: 'clover', color: '#2e6b4f' }
+  };
+  // Thứ tự ô theo chiều kim đồng hồ, bắt đầu từ đỉnh. Hiện tại: sticker 45%, móc khoá 15%, không trúng 40%
+  const WHEEL = [
+    { prize: 'sticker', share: 15 }, { prize: 'none', share: 20 }, { prize: 'sticker', share: 15 },
+    { prize: 'keychain', share: 15 }, { prize: 'sticker', share: 15 }, { prize: 'none', share: 20 }
+  ];
+  const spinOf = (id) => (pass && pass.spins && pass.spins[id]) || null;
+
+  function wheelSVG() {
+    let a0 = 0;
+    const pt = (deg, r) => { const t = (deg - 90) * Math.PI / 180; return [(r * Math.cos(t)).toFixed(2), (r * Math.sin(t)).toFixed(2)]; };
+    const parts = WHEEL.map((seg, k) => {
+      const a1 = a0 + seg.share * 3.6, mid = (a0 + a1) / 2, pz = PRIZES[seg.prize];
+      const [x0, y0] = pt(a0, 96), [x1, y1] = pt(a1, 96), [tx, ty] = pt(mid, 62);
+      const out = `<path d="M0 0 L${x0} ${y0} A96 96 0 ${a1 - a0 > 180 ? 1 : 0} 1 ${x1} ${y1} Z" fill="${pz.color}" opacity="${k % 2 ? 0.86 : 1}"/>
+        <text x="${tx}" y="${ty}" transform="rotate(${mid} ${tx} ${ty})" text-anchor="middle" dominant-baseline="middle" font-family="Be Vietnam Pro, Arial, sans-serif" font-size="12.5" font-weight="800" fill="#fff8ec">${pz.short}</text>`;
+      a0 = a1;
+      return out;
+    }).join('');
+    return `<svg viewBox="-100 -100 200 200" role="img" aria-label="Vòng quay may mắn: ${Object.values(PRIZES).map((x) => x.label).join(', ')}" xmlns="http://www.w3.org/2000/svg">
+      <circle r="99" fill="#3a1a0c"/>${parts}
+      <circle r="96" fill="none" stroke="#f3d68a" stroke-width="3"/>
+      ${WHEEL.map((_, k) => { const [x, y] = pt(WHEEL.slice(0, k).reduce((a, b) => a + b.share * 3.6, 0), 96); return `<circle cx="${x}" cy="${y}" r="3" fill="#f3d68a"/>`; }).join('')}
+      <circle r="20" fill="#fff4dc" stroke="#c7321a" stroke-width="4"/>
+      <text y="1" text-anchor="middle" dominant-baseline="middle" font-family="Be Vietnam Pro, Arial" font-size="11" font-weight="800" fill="#9b2a17">Táo</text></svg>`;
+  }
+
+  function openWheel(id) {
+    if (!pass || !pass.stamps.includes(id) || spinOf(id)) return Promise.resolve();
+    const st = STATIONS[id - 1];
+    const p = ask({
+      title: `Vòng quay may mắn · ${st.name}`,
+      html: `<p>Bạn vừa đóng dấu ở ${st.name}. Mỗi trạm được quay một lần, trúng gì nhận ngay tại trạm.</p>
+        <div class="wheel-wrap"><span class="wheel-pin" aria-hidden="true"></span><div class="wheel" id="wheel">${wheelSVG()}</div></div>
+        <p class="wheel-result" id="wheel-result" aria-live="polite"></p>
+        <button class="btn btn-primary btn-block" type="button" id="wheel-spin"><i class="ph ph-spiral" aria-hidden="true"></i> Quay</button>`,
+      buttons: [{ label: 'Để sau', value: 'later', cls: 'btn-quiet', id: 'wheel-close' }]
+    });
+    $('#wheel-spin').addEventListener('click', () => spinWheel(id));
+    track('wheel_open', { station: id });
+    return p;
+  }
+
+  function spinWheel(id) {
+    if (spinOf(id)) return;
+    const btn = $('#wheel-spin');
+    btn.disabled = true;
+    // Chọn ô theo tỉ lệ, rồi cho kim dừng ở một điểm ngẫu nhiên trong ô đó
+    let r = Math.random() * 100, k = 0;
+    while (k < WHEEL.length - 1 && r >= WHEEL[k].share) { r -= WHEEL[k].share; k++; }
+    const start = WHEEL.slice(0, k).reduce((a, b) => a + b.share * 3.6, 0);
+    const span = WHEEL[k].share * 3.6;
+    const at = start + span * (0.15 + Math.random() * 0.7);
+    const prize = WHEEL[k].prize;
+    // Lưu kết quả ngay khi bấm quay: đóng hộp thoại giữa chừng cũng không quay lại được
+    pass.spins = Object.assign({}, pass.spins, { [id]: { prize, at: Date.now() } });
+    store.set('pass', pass);
+    measure('spin', { st: id, prize });
+    track('wheel_spin', { station: id, prize });
+    const wheel = $('#wheel');
+    const turn = 360 * (reduceMotion ? 1 : 6) + (360 - at);
+    const reveal = () => {
+      const pz = PRIZES[prize], win = prize !== 'none';
+      const res = $('#wheel-result');
+      if (res) res.innerHTML = win
+        ? `<i class="ph-fill ph-${pz.icon}" aria-hidden="true"></i> Bạn trúng <strong>${pz.label}</strong>. Đưa màn hình này cho nhân sự ở trạm để nhận quà.`
+        : `<i class="ph ph-${pz.icon}" aria-hidden="true"></i> ${pz.label}. Cảm ơn bạn đã ghé ${STATIONS[id - 1].name}!`;
+      if (res) res.className = 'wheel-result ' + (win ? 'is-win' : 'is-miss');
+      if (btn) btn.hidden = true;
+      const close = $('#wheel-close');
+      if (close) { close.textContent = 'Xong'; close.className = 'btn btn-primary'; }
+      if (win) { sound.chime(); toast(`Bạn trúng ${pz.label}!`, 'gold', 'gift'); }
+      ppRefresh([PP.visa(id)]);
+      renderCheckout();
+    };
+    // Chốt kết quả đúng giờ dù trình duyệt vẽ chậm (chuyển ứng dụng, tab bị ẩn): dừng vòng ở đúng ô rồi hiện kết quả
+    const dur = reduceMotion ? 0.6 : 4.6;
+    let shown = false;
+    const finish = () => {
+      if (shown) return;
+      shown = true;
+      if (hasGsap) { gsap.killTweensOf(wheel); gsap.set(wheel, { rotation: turn }); } else wheel.style.transform = `rotate(${turn}deg)`;
+      reveal();
+    };
+    if (hasGsap) gsap.fromTo(wheel, { rotation: 0 }, { rotation: turn, duration: dur, ease: reduceMotion ? 'power1.out' : 'power4.out', onComplete: finish });
+    setTimeout(finish, dur * 1000 + 400);
+  }
+
   // Dấu mực đóng xuống trang visa
   function playStamp(sel) {
     const wrap = $(`[data-stamp="${sel}"]`);
@@ -1212,6 +1423,7 @@
     pass.stampedAt = Object.assign({}, pass.stampedAt, { [st.id]: Date.now() });
     store.set('pass', pass);
     track('stamp_added', { station: st.id });
+    measure('stamp', { st: st.id });
     if (input) input.value = '';
     const complete = pass.stamps.length === 4;
 
@@ -1227,7 +1439,10 @@
     ppGo(target);
     later(() => {
       playStamp(st.id);
-      if (complete) later(() => { ppGo(PP.done); later(() => playStamp('gold'), reduceMotion ? 80 : 950); }, 1300);
+      // Dấu đóng xong thì mở vòng quay; quay xong (hoặc để sau) mới sang trang hoàn thành
+      later(() => openWheel(st.id).then(() => {
+        if (complete) { ppGo(PP.done); setTimeout(() => playStamp('gold'), reduceMotion ? 80 : 950); }
+      }), reduceMotion ? 300 : 1100);
     }, wait);
 
     if (complete) {
@@ -1240,6 +1455,14 @@
     }
   }
 
+  // Danh sách quà vòng quay đã trúng ở các trạm
+  function wonList() {
+    const won = STATIONS.map((s) => [s, spinOf(s.id)]).filter(([, x]) => x && x.prize !== 'none');
+    if (!won.length) return '';
+    return `<div class="won"><strong><i class="ph ph-gift" aria-hidden="true"></i> Quà vòng quay</strong>
+      <ul>${won.map(([s, x]) => `<li><span>${PRIZES[x.prize].label}</span><small>${s.name}</small></li>`).join('')}</ul></div>`;
+  }
+
   function renderCheckout() {
     const box = $('#checkout');
     if (typeof renderLetter === 'function' && $('#letter-lock')) renderLetter();
@@ -1250,13 +1473,12 @@
       <p style="color:var(--text-muted);margin-top:6px">${pass.claimed ? 'Quà đã được trao. Cảm ơn bạn đã đồng hành.' : 'Đưa mã này cho nhân sự tại bàn check-out. Mã chỉ dùng được một lần.'}</p></div>
       <p class="gift-code ${pass.claimed ? 'is-claimed' : ''}" aria-label="Mã nhận quà ${pass.giftCode.split('').join(' ')}">${pass.giftCode}</p>
       ${pass.claimed ? '' : '<button class="btn btn-ghost" type="button" id="btn-claim"><i class="ph ph-hand-heart" aria-hidden="true"></i> Nhân sự xác nhận đã trao quà</button>'}
+      ${wonList()}
       <div class="optin">
         <strong>Viết lá sớ gửi Táo</strong>
-        <p style="color:var(--text-muted);font-size:15px">${book.done.size === 4
-          ? 'Lá sớ đã mở. Ghi bốn lời gửi ông Táo và dán ảnh khoảnh khắc ở các trạm.'
-          : `Còn ${4 - book.done.size} câu chuyện trong sách chưa nghe. Nghe đủ bốn chương để mở lá sớ.`}</p>
+        <p style="color:var(--text-muted);font-size:15px">Lá sớ đã mở. Ghi bốn lời gửi ông Táo và dán ảnh khoảnh khắc ở các trạm.</p>
         <div class="optin-actions">
-          <a class="btn btn-primary btn-sm" href="${book.done.size === 4 ? '#la-so' : '#doc-sach'}" id="optin-yes">${book.done.size === 4 ? 'Viết lá sớ' : 'Nghe tiếp chuyện'}</a>
+          <a class="btn btn-primary btn-sm" href="#la-so" id="optin-yes">Viết lá sớ</a>
           <button class="btn btn-quiet" type="button" id="optin-no">Để sau</button>
         </div>
       </div>`;
@@ -1265,6 +1487,7 @@
       if (pass.claimed) { toast('Mã quà này đã được dùng. Nếu có nhầm lẫn, bạn báo nhân sự giúp nhé.', 'info'); return; }
       pass.claimed = true; store.set('pass', pass);
       track('reward_claimed');
+      measure('claim');
       toast('Đã ghi nhận trao quà. Chúc bạn một năm mới thật ấm.', 'gold', 'gift');
       renderCheckout();
     });
@@ -1301,7 +1524,7 @@
     if (v !== 'ok') return;
     store.clear();
     pass = null; book.done.clear(); book.idx = 0; book.started.clear();
-    renderTicket(); renderAllChapters(); goPage(P.cover); moveIndicator(false); renderLetter();
+    renderTicket(); renderRegister(); renderAllChapters(); goPage(P.cover); moveIndicator(false); renderLetter();
     toast('Đã xoá dữ liệu trên máy này.', 'ok');
   });
 
@@ -1310,7 +1533,7 @@
    * Góp ý của cô: không gán người dùng vào MỘT giá trị như tính cách ("bạn là Táo X"),
    * vì sẽ khiến họ bỏ qua ba giá trị còn lại. Lá sớ luôn ghi đủ BỐN giá trị,
    * mỗi giá trị một lời gửi (gợi ý sẵn, sửa tự do, không có đúng sai).
-   * Chỉ mở khi đã nghe đủ 4 chương VÀ đóng đủ 4 dấu trạm (nhóm chốt).
+   * Chỉ cần đủ 4 dấu trạm là mở; đọc sách không bắt buộc (nhóm chốt lại).
    * ==================================================================== */
   const VALUES = [
     { name: 'Hướng Thiện', icon: 'fire', lines: ['Năm nay nhà mình dám nhận lỗi và sửa sai.', 'Mỗi người tự nhìn lại mình để sống tử tế hơn.', 'Gieo thêm một việc tốt cho người quanh mình.'] },
@@ -1368,7 +1591,7 @@
   // ---------- Điều kiện mở lá sớ
   const gate = () => {
     const ch = book.done.size, st = pass ? pass.stamps.length : 0;
-    return { ch, st, ok: ch === 4 && st === 4 };
+    return { ch, st, ok: st === 4 };
   };
 
   let letterShown = false; // lần dựng đầu (lúc tải trang) không chạy hiệu ứng mở khoá
@@ -1396,16 +1619,16 @@
       <div class="lock-head">
         <span class="lock-ico" aria-hidden="true"><i class="ph ph-lock-simple"></i></span>
         <div><h3>Lá sớ mở khi bạn đi trọn hành trình</h3>
-        <p>Lá sớ ghi đủ bốn giá trị, nên cần bạn đi qua cả bốn: nghe bốn câu chuyện trong sách và đóng bốn dấu ở sự kiện.</p></div>
+        <p>Lá sớ ghi đủ bốn giá trị, nên cần bạn đi qua cả bốn trạm ở sự kiện. Sách bốn chương là phần đọc thêm, không bắt buộc.</p></div>
       </div>
       <ol class="lock-steps">
-        ${step(g.ch === 4, 'Nghe đủ 4 câu chuyện trong sách', `${g.ch}/4 chương`, '#doc-sach', 'Đọc tiếp')}
-        ${step(g.st === 4, 'Đóng đủ 4 dấu ở 4 trạm sự kiện', pass ? `${g.st}/4 dấu` : 'Chưa có thẻ thông hành', '#tram-trai-nghiem', pass ? 'Xem hộ chiếu' : 'Lấy thẻ thông hành')}
+        ${step(g.st === 4, 'Đóng đủ 4 dấu ở 4 trạm sự kiện', pass ? `${g.st}/4 dấu` : 'Nhận thẻ thông hành ở cổng sự kiện', '#tram-trai-nghiem', pass ? 'Xem hộ chiếu' : 'Xem cách nhận thẻ')}
+        ${step(g.ch === 4, 'Nghe 4 câu chuyện trong sách (không bắt buộc)', `${g.ch}/4 chương`, '#doc-sach', 'Đọc sách')}
       </ol>
       <ul class="lock-values" aria-label="Tiến độ từng giá trị">
         ${VALUES.map((v, k) => {
           const read = book.done.has(k), stamped = !!(pass && pass.stamps.includes(k + 1));
-          return `<li class="${read && stamped ? 'is-done' : ''}"><i class="ph${read && stamped ? '-fill' : ''} ph-${v.icon}" aria-hidden="true"></i><span>${v.name}</span>
+          return `<li class="${stamped ? 'is-done' : ''}"><i class="ph${stamped ? '-fill' : ''} ph-${v.icon}" aria-hidden="true"></i><span>${v.name}</span>
             <small><i class="ph${read ? '-fill' : ''} ph-book-open" aria-label="${read ? 'Đã nghe chuyện' : 'Chưa nghe chuyện'}"></i><i class="ph${stamped ? '-fill' : ''} ph-seal-check" aria-label="${stamped ? 'Đã đóng dấu' : 'Chưa đóng dấu'}"></i></small></li>`;
         }).join('')}
       </ul>`;
@@ -1554,7 +1777,7 @@
     return [
       `Lá sớ năm nay của nhà ${name}: hướng thiện, mái ấm, nếp nhà, tốt lành. Nhờ ông Táo mang lên trời giúp nhé! #ChuyenNhaTao #YearInValues`,
       `Bếp đỏ giữ lửa, nếp nhà đoàn viên. Một năm của nhà mình gói trong bốn giá trị. Còn lá sớ nhà bạn viết gì? #ChuyenNhaTao #YearInValues`,
-      `Nghe đủ bốn câu chuyện, đi đủ bốn trạm, và đây là lá sớ nhà mình gửi ông Táo. #ChuyenNhaTao #YearInValues`
+      `Đi đủ bốn trạm ở sự kiện Chuyện Nhà Táo, và đây là lá sớ nhà mình gửi ông Táo. #ChuyenNhaTao #YearInValues`
     ];
   }
   function renderCaptions() {
@@ -1617,7 +1840,33 @@
   renderAllChapters();
   initFlipbook();
   renderTicket();
+  renderRegister();
   renderLetter();
+
+  // QR ở cổng: ?vao=CONG23 → mở form nhận thẻ. QR ở trạm: ?tram=HUONG1 → đóng dấu.
+  // Xử lý xong thì xoá tham số khỏi thanh địa chỉ để tải lại trang không đóng dấu lần nữa.
+  {
+    const qs = new URLSearchParams(location.search);
+    const gate = qs.get('vao'), tram = qs.get('tram');
+    if (gate || tram) {
+      qs.delete('vao'); qs.delete('tram');
+      history.replaceState(null, '', location.pathname + (qs.toString() ? '?' + qs : '') + location.hash);
+    }
+    if (gate && !checkedIn()) enterGate(gate, 'qr');
+    else if (gate) toast('Bạn đã vào cổng sự kiện rồi.', 'info', 'door-open');
+    if (tram) {
+      if (pass) {
+        setTimeout(() => {
+          $('#ticket-slot').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+          setTimeout(() => addStamp(tram), 700);
+        }, 400);
+      } else {
+        store.set('pending_stamp', String(tram).toUpperCase());
+        toast(checkedIn() ? 'Nhập tên để nhận thẻ, dấu của trạm này sẽ được đóng ngay sau đó.' : 'Bạn cần nhận thẻ thông hành ở cổng check-in trước, rồi quét lại mã ở trạm nhé.', 'info', 'qr-code');
+        setTimeout(() => $('#register').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' }), 400);
+      }
+    }
+  }
   requestAnimationFrame(() => moveIndicator(false));
 
   document.addEventListener('copy', () => {}, { passive: true });

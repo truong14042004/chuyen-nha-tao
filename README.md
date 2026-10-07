@@ -56,75 +56,87 @@ Chạy `npm start`, xem địa chỉ IP máy tính bằng lệnh `ipconfig` (dò
 
 ```
 ChuyenNhaTao/
-├─ index.html        Toàn bộ bố cục các section S01 đến S09
+├─ index.html        Bố cục trang: hero, sách, thẻ thông hành, lá sớ, dữ liệu cá nhân
 ├─ styles.css        Giao diện (tông sáng, hero tông đêm), responsive từ 360px
-├─ app.js            Logic: sách 4 chương, mini-game, thẻ thông hành, QR, thẻ Vị Táo, analytics
+├─ app.js            Logic: sách 4 chương, nghe chuyện, thẻ thông hành, vòng quay, lá sớ, đo lường
 ├─ ca-chep.js        Cảnh 3D hero: cá chép + 500 đèn trời
+├─ admin.html/.js    Trang quản trị: số liệu từng mã thẻ, in mã QR cổng và trạm
+├─ api/
+│  ├─ track.js       Nhận sự kiện (lật trang, nghe chuyện, đóng dấu, quay thưởng)
+│  ├─ admin.js       Trả số liệu cho trang quản trị (cần mật khẩu)
+│  └─ _store.js      Kết nối Upstash Redis
 ├─ fish.stl          Model cá (từ pen "Flying lanterns and a Koi fish" của prisoner849)
-├─ images/
-│  ├─ chuong-1.jpg   Tranh minh hoạ 4 chương
-│  ├─ chuong-2.jpg
-│  ├─ chuong-3.jpg
-│  └─ chuong-4.jpg
-├─ audio/            (tuỳ chọn) chuong-1.mp3 đến chuong-4.mp3 cho giọng đọc
+├─ images/           Tranh 4 chương, giay-cu.jpg (nền giấy cũ)
+├─ audio/            (tuỳ chọn) chuong-N.mp3 giọng đọc chương, ke-chuyen-N.mp3 chuyện kể cuối chương
 ├─ package.json      Lệnh npm start
 └─ chay-du-an.bat    Chạy nhanh trên Windows
 ```
 
-Thư viện (three.js r147, GSAP 3.12, QRCode.js, Phosphor Icons, font Be Vietnam Pro) được tải từ CDN, nên **cần có mạng** khi mở trang.
+Thư viện (three.js r147, GSAP 3.12, QRCode.js, StPageFlip, Phosphor Icons, font Google) được tải từ CDN, nên **cần có mạng** khi mở trang.
 
 ---
 
-## 3. Thay nội dung thường gặp
+## 3. Luồng người chơi
+
+1. **Sách 4 chương (không bắt buộc):** đọc, cuối mỗi chương chạm vào một vật để nghe chuyện kể và mở huy hiệu.
+2. **Nhận thẻ ở cổng:** quét mã QR ở cổng check-in (mở trang với `?vao=CONG23`), nhập tên là có thẻ thông hành và mã QR riêng. Chưa quét mã cổng thì trang chỉ hướng dẫn cách nhận thẻ, không cho tạo thẻ.
+3. **Đi 4 trạm:** quét QR ở trạm (`?tram=HUONG1`...) hoặc nhập mã trạm. Dấu đóng vào trang visa, sau đó **quay vòng may mắn** một lần (sticker, móc khoá hoặc chúc may mắn).
+4. **Check-out:** đủ 4 dấu thì nhận quà cuối bằng mã QUA-XXXX, và mở **lá sớ gửi Táo** để chia sẻ.
+
+**Mã dùng thử:** cổng `CONG23`, trạm `HUONG1`, `MAIAM2`, `NEPNH3`, `TOTLA4`. Trang quản trị có sẵn 5 mã QR để in.
+
+---
+
+## 4. Thay nội dung thường gặp
 
 | Muốn đổi | Sửa ở đâu |
 |---|---|
-| Tranh minh hoạ chương | Thay file trong `images/`, giữ nguyên tên `chuong-1.jpg` đến `chuong-4.jpg` (nên rộng 1000 đến 1200px) |
-| Giọng đọc chương | Thêm `audio/chuong-1.mp3` đến `chuong-4.mp3`. Chưa có file thì trang dùng giọng tiếng Việt của trình duyệt (Edge có giọng HoaiMy) |
-| Headline, câu phụ hero | `index.html`, trong section `id="hero"` |
-| Nội dung 4 chương, câu hỏi gieo, mini-game, huy hiệu | `app.js`, mảng `CHAPTERS` |
-| Tên 4 trạm và mã trạm | `app.js`, mảng `STATIONS` |
-| 4 câu hỏi Vị Táo và danh hiệu | `app.js`, `QUESTIONS` và `VALUES` |
-| Caption mẫu | `app.js`, hàm `captionsFor` |
-| Ngày giờ, địa điểm sự kiện | `index.html`, khối `event-card` (đang ghi "Sắp công bố") |
-| Màu sắc, font | `styles.css`, các biến trong `:root` (tông sáng) và `.theme-dark` (tông đêm) |
-
-**Mã trạm dùng thử:** `HUONG1`, `MAIAM2`, `NEPNH3`, `TOTLA4`.
+| Tranh minh hoạ chương | Thay file trong `images/`, giữ tên `chuong-1.jpg` đến `chuong-4.jpg` |
+| Giọng đọc, chuyện kể | `audio/chuong-N.mp3` (đọc chương), `audio/ke-chuyen-N.mp3` (chuyện cuối chương) |
+| Nội dung 4 chương, chuyện kể, huy hiệu | `app.js`, mảng `CHAPTERS` |
+| Mã cổng | `app.js` `GATE_CODE` và `admin.js` `GATE_CODE` (đổi cả hai) |
+| Tên 4 trạm và mã trạm | `app.js` `STATIONS` và `admin.js` `STATIONS` |
+| Quà vòng quay và tỉ lệ trúng | `app.js`, `PRIZES` (tên quà) và `WHEEL` (mỗi ô một `share`, tổng 100) |
+| Gợi ý lời trong lá sớ | `app.js`, mảng `VALUES` |
+| Ngày giờ, địa điểm sự kiện | `app.js`, trang sự kiện trong sách (đang ghi "Sắp công bố") |
+| Màu sắc, font | `styles.css`, các biến trong `:root` |
 
 ---
 
-## 4. Một số điểm kỹ thuật
+## 5. Đo lường và trang quản trị
 
-- **Lưu trữ:** thẻ, dấu trạm, tiến độ đọc và câu trả lời được lưu trong `localStorage` của trình duyệt. Bản này **chưa có máy chủ**, nên tạo thẻ và đóng dấu chỉ đang mô phỏng trên máy. Muốn chạy sự kiện thật cần backend để lưu Virtual ID và cho nhân sự quét QR (màn S10 trong PDF).
-- **Analytics:** mọi sự kiện được đẩy vào `window.dataLayer` với tên đúng như cột tracking trong PDF (`page_view`, `chapter_start`, `badge_unlocked`, `form_submit`, `qr_scan`, `stamp_added`, `share_click`...). Gắn Google Tag Manager là đọc được ngay.
-- **Hiệu ứng chuyển động:** mặc định theo cài đặt "Animation effects" của Windows hoặc hệ điều hành. Người xem có thể bật hoặc tắt bằng nút ✨ trên header, trang nhớ lựa chọn này.
-- **Xoá dữ liệu thử:** cuối trang, mục "Tôi muốn xóa dữ liệu", bấm **Xóa dữ liệu trên máy**.
+Trang ghi lại cho **từng mã thẻ**: số lần lật trang sách, các trang đã xem, trang đang xem, chương đã nghe, dấu trạm, quà vòng quay. Người chưa nhận thẻ vẫn được đếm theo mã trình duyệt, nhận thẻ xong thì gắn với mã thẻ.
 
----
+Xem tại **`/admin.html`** (ví dụ https://chuyen-nha-tao.vercel.app/admin.html): bảng từng người, tìm kiếm, sắp xếp, xuất CSV, và phần **in mã QR** cho cổng và 4 trạm.
 
-## 5. Đưa lên mạng (miễn phí)
+**Cài đặt một lần trên Vercel:**
 
-Vì là trang tĩnh, có thể dùng:
+1. Vào project trên Vercel → **Storage** → **Create Database** → chọn **Upstash** (Redis, gói Free) → **Connect** với project `chuyen-nha-tao`. Vercel tự thêm biến `KV_REST_API_URL` và `KV_REST_API_TOKEN`.
+2. **Settings → Environment Variables** → thêm `ADMIN_KEY` = một mật khẩu do nhóm tự đặt (dài, khó đoán).
+3. **Deployments** → bấm **Redeploy** bản mới nhất để nhận biến mới.
+4. Mở `/admin.html`, nhập mật khẩu `ADMIN_KEY`.
 
-- **Netlify Drop:** vào https://app.netlify.com/drop, kéo thả cả thư mục dự án vào là có link HTTPS.
-- **Vercel** hoặc **GitHub Pages:** đẩy thư mục lên GitHub rồi bật Pages, hoặc import vào Vercel.
-
-Sau khi có domain, nhớ bổ sung theo checklist kỹ thuật trong PDF:
-
-- Ảnh `og-image.jpg` khổ 1200x630 đặt cạnh `index.html`, để link hiện đẹp khi chia sẻ.
-- Mã UTM cho bài teaser, QR in ấn và nút chia sẻ.
-- Test trên iOS Safari và Android Chrome, màn hình rộng 360 đến 430px.
+Chưa làm các bước trên, hoặc mở ở máy (localhost), thì trang quản trị hiện số liệu của chính trình duyệt đang mở để xem thử.
 
 ---
 
-## 6. Việc nhóm cần chốt
+## 6. Một số điểm kỹ thuật
 
-- Headline chính: bản PDF bị cắt chữ, đang tạm dùng "Bếp đỏ giữ lửa, nếp nhà đoàn viên".
-- Tên menu "Tạo Thẻ Yêu Nghiệm" (đang dùng "Thẻ Vị Táo") và tên cổng "Tâm Thế Thông Hành Hảo Quán" (đang dùng "Thẻ thông hành").
-- Danh hiệu thứ 4 "Táo Vượt Vũ Môn" (đề xuất).
+- **Lưu trữ:** thẻ, dấu trạm, quà, ảnh khoảnh khắc và lá sớ lưu trong `localStorage` của người chơi. Số liệu đo lường gửi lên `/api/track` (Upstash Redis). Ảnh và lời trong lá sớ không gửi lên máy chủ.
+- **Mất mạng:** thẻ tạo lúc mất mạng có mã `OFF-`, có mạng lại tự đổi sang `TAO-`. Sự kiện đo lường được giữ lại trên máy và gửi khi có mạng.
+- **Vòng quay** đang quay trên máy người chơi (kết quả lưu ngay khi bấm quay, đóng giữa chừng cũng không quay lại được). Muốn chặn gian lận triệt để thì chuyển phần chọn quà lên máy chủ.
+- **Analytics:** sự kiện cũng được đẩy vào `window.dataLayer`, gắn Google Tag Manager là đọc được.
+- **Xoá dữ liệu thử:** cuối trang, mục "Tôi muốn xóa dữ liệu", bấm **Xóa dữ liệu trên máy**, gõ XOÁ để xác nhận.
+
+---
+
+## 7. Việc nhóm cần chốt
+
+- Mã cổng thật (đang là `CONG23`), tên 4 trạm và mã trạm.
+- Danh sách quà vòng quay, số lượng mỗi loại, tỉ lệ trúng.
 - Ngày giờ và địa điểm sự kiện, thể lệ đầy đủ, thời gian lưu dữ liệu, email nhận yêu cầu xoá dữ liệu, độ tuổi tối thiểu.
-- Tranh chương 1 đang là bản tạm (độ phân giải thấp). Tranh chương 3, 4 nên thay bản gốc lớn hơn.
-- File giọng đọc MP3 cho 4 chương.
+- File thu âm chuyện kể cuối chương (`ke-chuyen-1.mp3` đến `ke-chuyen-4.mp3`).
+- Tranh chương 1 bản nét, ảnh `og-image.jpg` 1200x630 khi chia sẻ link.
 
 ---
 

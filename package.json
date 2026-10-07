@@ -1,7 +1,7 @@
 {
   "name": "chuyen-nha-tao-landing",
   "version": "1.0.0",
-  "description": "Landing page Chuyện Nhà Táo: đêm 23 tháng Chạp, sách 4 chương, thẻ thông hành 4 trạm, thẻ Vị Táo",
+  "description": "Landing page Chuyện Nhà Táo: đêm 23 tháng Chạp, sách 4 chương, thẻ thông hành 4 trạm, vòng quay, lá sớ gửi Táo",
   "private": true,
   "scripts": {
     "start": "npx -y http-server . -p 5173 -c-1 -o",
