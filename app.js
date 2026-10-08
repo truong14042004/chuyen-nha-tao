@@ -1401,12 +1401,17 @@
   const PRIZES = {
     sticker: { label: 'Sticker Táo Quân', short: 'Sticker', icon: 'sticker', color: '#b8241c', ink: '#fff3d6' },
     keychain: { label: 'Móc khoá cá chép', short: 'Móc khoá', icon: 'key', color: '#e3a92b', ink: '#4a2408' },
+    blindbox: { label: 'Blindbox bí ẩn', short: 'Blindbox', icon: 'gift', color: '#33245c', ink: '#f3d27a' },
     none: { label: 'Chúc may mắn lần sau', short: 'Lần sau', icon: 'clover', color: '#2f6a47', ink: '#fff3d6' }
   };
-  // Thứ tự ô theo chiều kim đồng hồ, bắt đầu từ đỉnh. Hiện tại: sticker 45%, móc khoá 15%, không trúng 40%
+  // 12 ô theo chiều kim đồng hồ, bắt đầu từ đỉnh; ô to nhỏ đúng theo tỉ lệ trúng.
+  // Tỉ lệ nhóm chốt: sticker 45% (5 ô), móc khoá 20% (3 ô), blindbox 5% (1 ô hiếm), không có gì 30% (3 ô).
+  // Giữ khớp PRIZE_WEIGHTS trong api/_store.js (máy chủ bốc quà theo tỉ lệ đó).
   const WHEEL = [
-    { prize: 'sticker', share: 15 }, { prize: 'none', share: 20 }, { prize: 'sticker', share: 15 },
-    { prize: 'keychain', share: 15 }, { prize: 'sticker', share: 15 }, { prize: 'none', share: 20 }
+    { prize: 'sticker', share: 9 }, { prize: 'none', share: 10 }, { prize: 'keychain', share: 7 },
+    { prize: 'sticker', share: 9 }, { prize: 'none', share: 10 }, { prize: 'sticker', share: 9 },
+    { prize: 'blindbox', share: 5 }, { prize: 'sticker', share: 9 }, { prize: 'keychain', share: 7 },
+    { prize: 'none', share: 10 }, { prize: 'sticker', share: 9 }, { prize: 'keychain', share: 6 }
   ];
   const spinOf = (id) => (pass && pass.spins && pass.spins[id]) || null;
   const segStart = (k) => WHEEL.slice(0, k).reduce((a, b) => a + b.share * 3.6, 0);
@@ -1423,15 +1428,16 @@
     const R = 84;
     const parts = WHEEL.map((seg, k) => {
       const a0 = segStart(k), a1 = a0 + seg.share * 3.6, mid = (a0 + a1) / 2, pz = PRIZES[seg.prize];
-      const [x0, y0] = pt(a0, R), [x1, y1] = pt(a1, R), [tx, ty] = pt(mid, 55);
+      const [x0, y0] = pt(a0, R), [x1, y1] = pt(a1, R), [tx, ty] = pt(mid, 57);
+      const turn = mid <= 180 ? mid - 90 : mid + 90;
       return `<path d="M0 0 L${x0} ${y0} A${R} ${R} 0 ${a1 - a0 > 180 ? 1 : 0} 1 ${x1} ${y1} Z" fill="${pz.color}"/>
         <line x1="0" y1="0" x2="${x0}" y2="${y0}" stroke="#f3d27a" stroke-width="1.6"/>
-        <text x="${tx}" y="${ty}" transform="rotate(${mid} ${tx} ${ty})" text-anchor="middle" dominant-baseline="middle" font-family="'Potta One', 'Be Vietnam Pro', sans-serif" font-size="${pz.short.length > 7 ? 10.5 : 12.5}" fill="${pz.ink}">${pz.short}</text>`;
+        <text x="${tx}" y="${ty}" transform="rotate(${turn} ${tx} ${ty})" text-anchor="middle" dominant-baseline="middle" font-family="'Potta One', 'Be Vietnam Pro', sans-serif" font-size="${seg.share < 7 ? 8.5 : 9.5}" fill="${pz.ink}">${pz.short}</text>`;
     }).join('');
     // Vành đèn: 24 bóng đèn vàng, trắng xen kẽ
     const bulbs = Array.from({ length: 24 }, (_, i) => { const [x, y] = pt(i * 15, 92); return `<circle cx="${x}" cy="${y}" r="2.6" fill="${i % 2 ? '#fff6d8' : '#f3c64d'}" stroke="#7a1a0e" stroke-width=".6"/>`; }).join('');
     // Hoa đào ở chỗ giao giữa các ô
-    const flowers = WHEEL.map((_, k) => { const [x, y] = pt(segStart(k), R - 3); return blossom(x, y, 6); }).join('');
+    const flowers = WHEEL.map((_, k) => { const [x, y] = pt(segStart(k), R - 2); return blossom(x, y, 4.2); }).join('');
     return `<svg viewBox="-100 -100 200 200" role="img" aria-label="Vòng quay may mắn: ${Object.values(PRIZES).map((x) => x.label).join(', ')}" xmlns="http://www.w3.org/2000/svg">
       <circle r="99" fill="#7a1a0e"/><circle r="97" fill="none" stroke="#f3d27a" stroke-width="2"/>
       ${bulbs}
@@ -1588,8 +1594,10 @@
     const btn = $('#wheel-spin');
     btn.disabled = true;
     // Chọn ô theo tỉ lệ, rồi cho kim dừng ở một điểm ngẫu nhiên trong ô đó
-    let r = Math.random() * 100, k = 0;
-    while (k < WHEEL.length - 1 && r >= WHEEL[k].share) { r -= WHEEL[k].share; k++; }
+    const hadNone = Object.values(pass.spins || {}).some((x) => x.prize === 'none');
+    const pool = WHEEL.map((x, i) => i).filter((i) => !(hadNone && WHEEL[i].prize === 'none'));
+    let r = Math.random() * pool.reduce((a, i) => a + WHEEL[i].share, 0), k = pool[0];
+    for (const i of pool) { k = i; if (r < WHEEL[i].share) break; r -= WHEEL[i].share; }
     // Có kết quả máy chủ bốc (staff đóng dấu): kim dừng ở một ô đúng loại quà đó
     const fixed = pass.serverPrizes && pass.serverPrizes[id];
     if (fixed) { const ks = WHEEL.map((x, i) => (x.prize === fixed ? i : -1)).filter((i) => i >= 0); k = ks[Math.floor(Math.random() * ks.length)]; }
@@ -1607,7 +1615,7 @@
       const res = $('#wheel-result');
       if (res) {
         res.innerHTML = win
-          ? `<i class="ph-fill ph-${pz.icon}" aria-hidden="true"></i> Chúc mừng! Bạn trúng <strong>${pz.label}</strong>. Đưa màn hình này cho nhân sự ở trạm để nhận quà.`
+          ? `<i class="ph-fill ph-${pz.icon}" aria-hidden="true"></i> ${prize === 'blindbox' ? 'Quà hiếm, cả sự kiện chỉ có ít người trúng!' : 'Chúc mừng!'} Bạn trúng <strong>${pz.label}</strong>. Đưa màn hình này cho nhân sự ở trạm để nhận quà.`
           : `<i class="ph ph-${pz.icon}" aria-hidden="true"></i> ${pz.label}. Chúc bạn năm mới an khang, cảm ơn đã ghé ${STATIONS[id - 1].name}!`;
         res.className = 'wheel-result ' + (win ? 'is-win' : 'is-miss');
       }

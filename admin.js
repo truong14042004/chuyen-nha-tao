@@ -11,7 +11,7 @@
   // Giữ khớp với app.js (GATE_CODE, STATIONS, PRIZES, số trang sách)
   const GATE_CODE = 'CONG23';
   const STATIONS = [['Trạm Hướng Thiện', 'HUONG1'], ['Trạm Mái Ấm', 'MAIAM2'], ['Trạm Nếp Nhà', 'NEPNH3'], ['Trạm Tốt Lành', 'TOTLA4']];
-  const PRIZE_LABEL = { sticker: 'Sticker', keychain: 'Móc khoá', none: 'Không trúng' };
+  const PRIZE_LABEL = { sticker: 'Sticker', keychain: 'Móc khoá', blindbox: 'Blindbox', none: 'Không trúng' };
   const PAGE_COUNT = 22;
   const pageName = (p) => p == null ? '—' : p === 0 ? 'Bìa' : p === 1 ? 'Lời mở đầu' : p === 2 ? 'Mục lục'
     : p <= 18 ? `Ch.${Math.floor((p - 3) / 4) + 1} · tr.${p}` : p === 19 ? 'Tổng kết' : p === 20 ? 'Sự kiện' : 'Bìa sau';
@@ -112,10 +112,8 @@
       [(sum((r) => r.pagesN) / n).toFixed(1), `Trang đã xem trung bình (/${PAGE_COUNT})`],
       [R.filter((r) => r.chaptersN === 4).length, 'Nghe đủ 4 chương'],
       [R.filter((r) => r.stampsN === 4).length, 'Đủ 4 dấu trạm'],
-      [prize('sticker'), 'Sticker đã trúng'],
-      [prize('keychain'), 'Móc khoá đã trúng']
+      [`${prize('sticker')} · ${prize('keychain')} · ${prize('blindbox')}`, 'Quà đã trúng: sticker · móc khoá · blindbox']
     ];
-    tiles.splice(5, 1); // bỏ ô "nghe đủ 4 chương" cho vừa 2 hàng × 4 ô
     $('#tiles').innerHTML = tiles.map(([v, l]) => `<div class="tile"><b>${v}</b><span>${l}</span></div>`).join('');
     $('#people-sub').textContent = state.source === 'api' ? `${R.length} người, sắp theo hoạt động gần nhất` : 'Số liệu của trình duyệt này';
     renderRows();

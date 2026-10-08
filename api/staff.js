@@ -35,7 +35,9 @@ module.exports = async (req, res) => {
       if (!(st >= 1 && st <= 4)) return res.status(400).json({ error: 'station' });
       if (o[`st${st}`]) note = 'already';
       else {
-        const prize = rollPrize();
+        // Luật "không có gì" tối đa 1 lần cho mỗi thẻ
+        const hadNone = [1, 2, 3, 4].some((s) => o[`prize${s}`] === 'none');
+        const prize = rollPrize(hadNone);
         cmds.push(['HSET', key, `st${st}`, now, `prize${st}`, prize]);
         if (o.vid) cmds.push(['SADD', `st:${o.vid}`, String(st)], ['HSET', `u:${o.vid}`, `prize${st}`, prize, 'seen', now], ['ZADD', 'users', now, o.vid]);
         cmds.push(['HINCRBY', 'staff:stamps', String(st), '1']);

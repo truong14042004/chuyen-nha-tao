@@ -37,12 +37,17 @@ function readBody(req) {
 
 const PID_RE = /^(TAO|OFF)-[A-Z0-9]{6}$/;
 
-// Kết quả vòng quay do máy chủ bốc lúc đóng dấu (khớp WHEEL trong app.js: sticker 45, móc khoá 15, không trúng 40)
-const PRIZE_WEIGHTS = [['sticker', 45], ['keychain', 15], ['none', 40]];
-function rollPrize() {
-  let r = crypto.randomInt(0, 100);
-  for (const [k, w] of PRIZE_WEIGHTS) { if (r < w) return k; r -= w; }
-  return 'none';
+// Kết quả vòng quay do máy chủ bốc lúc đóng dấu (khớp WHEEL trong app.js).
+// Tỉ lệ nhóm chốt: sticker 45%, móc khoá 20%, blindbox 5% (hiếm), không có gì 30%.
+// Mỗi mã thẻ chỉ trúng "không có gì" tối đa 1 lần: đã trúng rồi thì lượt sau bốc trong các quà còn lại.
+const PRIZE_WEIGHTS = [['sticker', 45], ['keychain', 20], ['blindbox', 5], ['none', 30]];
+const PRIZE_KEYS = new Set(PRIZE_WEIGHTS.map(([k]) => k));
+function rollPrize(noMoreNone) {
+  const pool = PRIZE_WEIGHTS.filter(([k]) => !(noMoreNone && k === 'none'));
+  const total = pool.reduce((a, [, w]) => a + w, 0);
+  let r = crypto.randomInt(0, total);
+  for (const [k, w] of pool) { if (r < w) return k; r -= w; }
+  return pool[0][0];
 }
 
 // Thẻ ở dạng gửi cho người chơi / staff
@@ -72,4 +77,4 @@ async function checkKey(req, keys) {
   return { ok: false, status: 401 };
 }
 
-module.exports = { configured, redis, toObject, readBody, PID_RE, rollPrize, passView, checkKey };
+module.exports = { configured, redis, toObject, readBody, PID_RE, rollPrize, PRIZE_KEYS, passView, checkKey };

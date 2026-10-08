@@ -81,7 +81,7 @@ Thư viện (three.js r147, GSAP 3.12, QRCode.js, StPageFlip, Phosphor Icons, fo
 1. **Sách 4 chương (không bắt buộc):** đọc, cuối mỗi chương chạm vào một vật để nghe chuyện kể và mở huy hiệu.
 2. **Tạo thẻ thông hành:** nhập tên là có hộ chiếu và mã QR riêng. Tạo trước ở nhà hoặc ngay tại cổng đều được.
 3. **Check-in ở cổng (tuỳ chọn):** quét QR ở cổng (`?vao=CONG23`) để ghi nhận đã tới sự kiện, admin xem được.
-4. **Đi 4 trạm (chỉ ở sự kiện):** quét QR ở trạm (`?tram=HUONG1`...) hoặc nhập mã in dưới QR. Dấu đóng vào trang visa, sau đó **quay vòng may mắn** một lần (sticker, móc khoá hoặc chúc may mắn). Chưa có thẻ mà quét QR trạm thì tạo thẻ xong dấu được đóng ngay.
+4. **Đi 4 trạm (chỉ ở sự kiện):** quét QR ở trạm (`?tram=HUONG1`...) hoặc nhập mã in dưới QR. Dấu đóng vào trang visa, sau đó **quay vòng may mắn** một lần (sticker 45%, móc khoá 20%, blindbox 5%, không có gì 30%; mỗi thẻ chỉ trúng ô trống tối đa 1 lần). Chưa có thẻ mà quét QR trạm thì tạo thẻ xong dấu được đóng ngay.
 5. **Check-out:** đủ 4 dấu thì nhận quà cuối bằng mã QUA-XXXX, và mở **lá sớ gửi Táo** để chia sẻ.
 
 **Mã dùng thử:** cổng `CONG23`, trạm `HUONG1`, `MAIAM2`, `NEPNH3`, `TOTLA4`. Trang quản trị có sẵn 5 mã QR để in.
@@ -97,7 +97,7 @@ Thư viện (three.js r147, GSAP 3.12, QRCode.js, StPageFlip, Phosphor Icons, fo
 | Nội dung 4 chương, chuyện kể, huy hiệu | `app.js`, mảng `CHAPTERS` |
 | Mã cổng | `app.js` `GATE_CODE` và `admin.js` `GATE_CODE` (đổi cả hai) |
 | Tên 4 trạm và mã trạm | `app.js` `STATIONS` và `admin.js` `STATIONS` |
-| Quà vòng quay và tỉ lệ trúng | `app.js`, `PRIZES` (tên quà) và `WHEEL` (mỗi ô một `share`, tổng 100) |
+| Quà vòng quay và tỉ lệ trúng | `app.js` `PRIZES` (tên quà), `WHEEL` (12 ô, mỗi ô một `share`, tổng 100) và `api/_store.js` `PRIZE_WEIGHTS` (máy chủ bốc theo tỉ lệ này) |
 | Gợi ý lời trong lá sớ | `app.js`, mảng `VALUES` |
 | Ngày giờ, địa điểm sự kiện | `app.js`, trang sự kiện trong sách (đang ghi "Sắp công bố") |
 | Màu sắc, font | `styles.css`, các biến trong `:root` |

@@ -6,11 +6,10 @@
 //   ch:{vid}  set    các chương đã nghe xong
 //   st:{vid}  set    các trạm đã đóng dấu
 //   users     zset   vid theo thời điểm hoạt động gần nhất
-const { configured, redis } = require('./_store');
+const { configured, redis, PRIZE_KEYS } = require('./_store');
 
 const MAX_EVENTS = 200;
 const PAGE_COUNT = 22;
-const PRIZES = new Set(['sticker', 'keychain', 'none']);
 
 function readBody(req) {
   if (req.body && typeof req.body === 'object') return req.body;
@@ -48,7 +47,7 @@ module.exports = async (req, res) => {
       cmds.push(['SADD', `ch:${vid}`, String(n)]);
     } else if (e.t === 'stamp' && n >= 1 && n <= 4) {
       cmds.push(['SADD', `st:${vid}`, String(n)]);
-    } else if (e.t === 'spin' && n >= 1 && n <= 4 && PRIZES.has(e.prize)) {
+    } else if (e.t === 'spin' && n >= 1 && n <= 4 && PRIZE_KEYS.has(e.prize)) {
       cmds.push(['HSET', key, `prize${n}`, e.prize]);
     } else if (e.t === 'checkin') {
       cmds.push(['HSETNX', key, 'checkin', String(now)]);
