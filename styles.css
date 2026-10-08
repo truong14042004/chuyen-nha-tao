@@ -180,9 +180,10 @@ body::after {
   background: var(--accent); color: #fff; font-weight: 800; font-size: 14px; letter-spacing: -0.02em;
   box-shadow: inset 0 0 0 2px rgba(255,255,255,.18);
 }
-.brand-name { font-family: 'Playfair Display', Georgia, serif; font-weight: 800; font-size: 22px; line-height: 1; letter-spacing: 0; white-space: nowrap; }
-@media (max-width: 400px) { .brand-name { font-size: 19px; } .site-header .container { gap: 10px; } .header-actions { gap: 6px; } }
-@media (max-width: 340px) { .brand-name { font-size: 17px; } }
+/* Logo: nét bút lông như ông đồ cho chữ ngày Tết */
+.brand-name { font-family: 'Comforter Brush', 'Playfair Display', cursive; font-weight: 400; font-size: 34px; line-height: 1; letter-spacing: .01em; white-space: nowrap; padding-top: 4px; }
+@media (max-width: 400px) { .brand-name { font-size: 30px; } .site-header .container { gap: 10px; } .header-actions { gap: 6px; } }
+@media (max-width: 340px) { .brand-name { font-size: 26px; } }
 
 .nav-links { display: none; gap: 4px; }
 .nav-links a {
