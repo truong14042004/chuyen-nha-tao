@@ -32,6 +32,7 @@ module.exports = async (req, res) => {
         stamps: nums(out[i * 4 + 3]),
         prizes: [1, 2, 3, 4].map((s) => u[`prize${s}`] || null),
         claimed: u.claimed === '1',
+        checkin: Number(u.checkin || 0),
         first: Number(u.first || 0),
         seen: Number(u.seen || 0)
       };

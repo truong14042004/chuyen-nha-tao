@@ -107,7 +107,7 @@
         <div class="section-head reveal">
           <h2 id="book-title">Cuốn sách bốn chương</h2>
           <p>Lật từng trang để đọc câu chuyện gian bếp ngày Tết. Cuối mỗi chương có một câu chuyện nhỏ để lắng nghe và mở huy hiệu.</p>
-          <p class="book-optional"><i class="ph ph-info" aria-hidden="true"></i> Sách là phần đọc thêm, không bắt buộc. <a href="#tram-trai-nghiem">Đến sự kiện và nhận thẻ thông hành</a></p>
+          <p class="book-optional"><i class="ph ph-info" aria-hidden="true"></i> Sách là phần đọc thêm, không bắt buộc. <a href="#tram-trai-nghiem">Tạo thẻ thông hành và đi bốn trạm</a></p>
         </div>
 
         <div class="chapter-tabs reveal" role="tablist" aria-label="Các chương" id="chapter-tabs">
@@ -136,13 +136,13 @@
         <div class="section-head reveal">
           <!-- PDF: tên "Tâm Thế Thông Hành Hảo Quán" cần xác nhận -->
           <h2 id="passport-title">Thẻ thông hành bốn trạm</h2>
-          <p>Một thẻ số cho buổi sự kiện, nhận tại cổng check-in. Mỗi trạm đóng một dấu và quay thưởng một lần, đủ bốn dấu thì nhận quà.</p>
+          <p>Tạo thẻ trước, rồi đến sự kiện quét mã ở bốn trạm. Mỗi trạm đóng một dấu và quay thưởng một lần, đủ bốn dấu thì nhận quà.</p>
         </div>
 
         <ol class="flow reveal" aria-label="Cách tham gia">
-          <li class="flow-item"><span class="ico"><i class="ph ph-scan" aria-hidden="true"></i></span><span><strong>Quét QR ở cổng</strong><span>Nhận thẻ và mã QR riêng</span></span></li>
+          <li class="flow-item"><span class="ico"><i class="ph ph-identification-card" aria-hidden="true"></i></span><span><strong>Tạo thẻ</strong><span>Trước ở nhà hoặc tại cổng sự kiện</span></span></li>
           <li class="flow-line" aria-hidden="true"></li>
-          <li class="flow-item"><span class="ico"><i class="ph ph-qr-code" aria-hidden="true"></i></span><span><strong>Quét mã tại trạm</strong><span>Mỗi trạm một dấu, một lượt quay thưởng</span></span></li>
+          <li class="flow-item"><span class="ico"><i class="ph ph-qr-code" aria-hidden="true"></i></span><span><strong>Quét mã tại trạm</strong><span>Chỉ có ở sự kiện: mỗi trạm một dấu, một lượt quay</span></span></li>
           <li class="flow-line" aria-hidden="true"></li>
           <li class="flow-item"><span class="ico"><i class="ph ph-gift" aria-hidden="true"></i></span><span><strong>Nhận quà</strong><span>Đủ 4/4 dấu tại bàn check-out</span></span></li>
         </ol>
@@ -150,33 +150,13 @@
         <div class="passport-grid">
           <!-- S04 · Đăng ký / consent / Virtual ID -->
           <div class="card form-card reveal" id="register">
-            <!-- Chưa vào cổng: thẻ chỉ phát tại sự kiện, phải quét QR ở cổng check-in -->
-            <div class="reg-gate" id="register-gate">
-              <span class="gate-ico" aria-hidden="true"><i class="ph ph-scan"></i></span>
-              <h3>Thẻ thông hành chỉ phát tại sự kiện</h3>
-              <p class="lead">Đến cổng check-in, mở camera điện thoại và quét mã QR ở cổng. Trang sẽ mở form để bạn nhận thẻ.</p>
-              <ol class="gate-steps">
-                <li><i class="ph ph-door-open" aria-hidden="true"></i><span>Đến cổng check-in của sự kiện</span></li>
-                <li><i class="ph ph-qr-code" aria-hidden="true"></i><span>Quét mã QR ở cổng bằng camera điện thoại</span></li>
-                <li><i class="ph ph-identification-card" aria-hidden="true"></i><span>Nhập tên, nhận thẻ và mã QR riêng</span></li>
-              </ol>
-              <form class="code-entry" id="form-gate" novalidate>
-                <label for="f-gate" style="font-weight:600;font-size:15px">Không quét được? Nhập mã in dưới QR ở cổng</label>
-                <div class="code-row">
-                  <input class="input" id="f-gate" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="6 ký tự" aria-describedby="f-gate-help">
-                  <button class="btn btn-primary" type="submit">Vào cổng</button>
-                </div>
-                <p class="help" id="f-gate-help">Bản thử nghiệm: mã cổng là CONG23.</p>
-              </form>
-            </div>
-
             <!-- Đã có thẻ trên máy này -->
             <div class="reg-has" id="register-has" hidden></div>
 
-            <!-- Đã vào cổng: form nhận thẻ -->
-            <div id="register-open" hidden>
-            <h3>Nhận thẻ thông hành</h3>
-            <p class="lead">Bạn đã vào cổng sự kiện. Chỉ cần một cái tên để vào trạm. Email là tùy chọn, dùng để gửi thông tin quà.</p>
+            <!-- Chưa có thẻ: tạo thẻ (ở nhà trước sự kiện hoặc ngay tại cổng) -->
+            <div id="register-open">
+            <h3>Tạo thẻ thông hành</h3>
+            <p class="lead">Tạo trước ở nhà hoặc ngay tại cổng sự kiện. Chỉ cần một cái tên, email là tùy chọn, dùng để gửi thông tin quà.</p>
 
             <form class="form" id="form-register" novalidate>
               <div class="error-summary" id="error-summary" role="alert" tabindex="-1" hidden>

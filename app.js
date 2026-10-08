@@ -394,7 +394,7 @@
       <p class="pg-kicker">Lời mở đầu</p>
       <h3 class="pg-title">Gửi người giữ lửa</h3>
       <p class="pg-prose">Ngày 23 tháng Chạp, ông Táo cưỡi cá chép về trời, kể lại một năm của mỗi gia đình. Cuốn sách nhỏ này mời bạn ngồi bên bếp lửa, đọc bốn câu chuyện về hướng thiện, mái ấm, nếp nhà và điều tốt lành.</p>
-      <p class="pg-prose">Cuối mỗi chương có một câu chuyện nhỏ để bạn lắng nghe. Sách là phần đọc thêm, không bắt buộc: bạn có thể đến thẳng sự kiện, nhận thẻ ở cổng và đi bốn trạm.</p>
+      <p class="pg-prose">Cuối mỗi chương có một câu chuyện nhỏ để bạn lắng nghe. Sách là phần đọc thêm, không bắt buộc: bạn có thể tạo thẻ thông hành ngay và đến sự kiện đi bốn trạm.</p>
       <p class="pg-hint"><i class="ph ph-hand-swipe-right" aria-hidden="true"></i> Kéo góc trang hoặc vuốt ngang để lật</p>
     </div>${folio(1)}`;
   pageHTML[P.toc] = `
@@ -820,14 +820,13 @@
 
   let pass = store.get('pass', null); // { id, nickname, email?, consent, stamps:[], giftCode, claimed, synced, offlineId?, spins? }
 
-  // Thẻ thông hành chỉ phát tại sự kiện (nhóm chốt): mã QR ở cổng check-in mở trang
-  // với ?vao=CONG23. Không quét được thì nhập mã in dưới QR. Đổi mã mỗi sự kiện nếu cần.
+  // Thẻ tạo trước (ở nhà hoặc tại cổng); dấu trạm chỉ có khi quét mã ở trạm tại sự kiện.
+  // QR ở cổng (?vao=CONG23) chỉ ghi nhận đã check-in sự kiện, không chặn việc tạo thẻ.
   const GATE_CODE = 'CONG23';
-  const checkedIn = () => Boolean(store.get('checkin', null) || pass);
+  const checkedIn = () => Boolean(store.get('checkin', null));
   function renderRegister() {
-    const open = checkedIn(), has = Boolean(pass) && !store.get('new_pass', false);
-    $('#register-gate').hidden = open;
-    $('#register-open').hidden = !open || has;
+    const has = Boolean(pass) && !store.get('new_pass', false);
+    $('#register-open').hidden = has;
     const box = $('#register-has');
     box.hidden = !has;
     if (!has) return;
@@ -851,23 +850,18 @@
       $('#f-nickname').focus();
     });
   }
-  function enterGate(raw, from) {
-    const code = String(raw || '').trim().toUpperCase();
-    const input = $('#f-gate');
-    if (code !== GATE_CODE) {
-      toast('Mã cổng chưa đúng. Mã in ngay dưới QR ở cổng check-in, bạn xem lại giúp nhé.', 'err');
-      if (input) { input.classList.remove('shake'); void input.offsetWidth; input.classList.add('shake'); }
-      return false;
+  function enterGate(raw) {
+    if (String(raw || '').trim().toUpperCase() !== GATE_CODE) return;
+    if (!checkedIn()) {
+      store.set('checkin', { at: Date.now() }); track('gate_checkin'); measure('checkin');
+      if (pass) ppRefresh([PP.data]);
     }
-    store.set('checkin', { at: Date.now(), from });
-    track('gate_checkin', { from });
-    measure('checkin');
-    renderRegister();
-    toast('Chào mừng bạn đến sự kiện. Nhập tên để nhận thẻ thông hành nhé.', 'ok', 'door-open');
-    setTimeout(() => { $('#register').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' }); $('#f-nickname').focus({ preventScroll: true }); }, 300);
-    return true;
+    toast(pass ? 'Chào mừng bạn đến sự kiện. Đưa hộ chiếu đi quét mã ở bốn trạm nhé.' : 'Chào mừng bạn đến sự kiện. Tạo thẻ thông hành rồi đi quét mã ở bốn trạm nhé.', 'ok', 'door-open');
+    setTimeout(() => {
+      $(pass ? '#ticket-slot' : '#register').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+      if (!pass) $('#f-nickname').focus({ preventScroll: true });
+    }, 400);
   }
-  $('#form-gate').addEventListener('submit', (e) => { e.preventDefault(); enterGate($('#f-gate').value, 'code'); });
 
   // Trùng nickname (góp ý 4b). Bản thử nghiệm chưa có máy chủ: danh sách tên đã có là dữ liệu giả lập
   // + tên đã đăng ký trên máy này. Khi có API thì thay isTaken bằng lệnh hỏi máy chủ.
@@ -1130,7 +1124,7 @@
         </div>
         <div class="pp-qr-row">
           <div class="pp-qr" id="pp-qr" role="img" aria-label="Mã QR của thẻ ${pass.id}"></div>
-          <p>${pass.synced ? 'Đưa mã QR này cho nhân sự ở mỗi trạm để đóng dấu.' : 'Thẻ tạo lúc mất mạng (mã OFF-). Nhân sự vẫn quét và đóng dấu được, thẻ tự đồng bộ khi có mạng.'}</p>
+          <p>${pass.synced ? (checkedIn() ? 'Đã check-in sự kiện. Quét mã ở mỗi trạm để đóng dấu.' : 'Đến sự kiện, quét mã ở mỗi trạm để đóng dấu.') : 'Thẻ tạo lúc mất mạng (mã OFF-). Nhân sự vẫn quét và đóng dấu được, thẻ tự đồng bộ khi có mạng.'}</p>
         </div>
         <div class="pp-mrz" aria-hidden="true"><span>${esc(l1)}</span><span>${esc(l2)}</span></div>
       </div>`;
@@ -1622,7 +1616,7 @@
         <p>Lá sớ ghi đủ bốn giá trị, nên cần bạn đi qua cả bốn trạm ở sự kiện. Sách bốn chương là phần đọc thêm, không bắt buộc.</p></div>
       </div>
       <ol class="lock-steps">
-        ${step(g.st === 4, 'Đóng đủ 4 dấu ở 4 trạm sự kiện', pass ? `${g.st}/4 dấu` : 'Nhận thẻ thông hành ở cổng sự kiện', '#tram-trai-nghiem', pass ? 'Xem hộ chiếu' : 'Xem cách nhận thẻ')}
+        ${step(g.st === 4, 'Đóng đủ 4 dấu ở 4 trạm sự kiện', pass ? `${g.st}/4 dấu` : 'Chưa có thẻ thông hành', '#tram-trai-nghiem', pass ? 'Xem hộ chiếu' : 'Tạo thẻ thông hành')}
         ${step(g.ch === 4, 'Nghe 4 câu chuyện trong sách (không bắt buộc)', `${g.ch}/4 chương`, '#doc-sach', 'Đọc sách')}
       </ol>
       <ul class="lock-values" aria-label="Tiến độ từng giá trị">
@@ -1843,7 +1837,7 @@
   renderRegister();
   renderLetter();
 
-  // QR ở cổng: ?vao=CONG23 → mở form nhận thẻ. QR ở trạm: ?tram=HUONG1 → đóng dấu.
+  // QR ở cổng: ?vao=CONG23 → ghi nhận check-in. QR ở trạm: ?tram=HUONG1 → đóng dấu.
   // Xử lý xong thì xoá tham số khỏi thanh địa chỉ để tải lại trang không đóng dấu lần nữa.
   {
     const qs = new URLSearchParams(location.search);
@@ -1852,8 +1846,7 @@
       qs.delete('vao'); qs.delete('tram');
       history.replaceState(null, '', location.pathname + (qs.toString() ? '?' + qs : '') + location.hash);
     }
-    if (gate && !checkedIn()) enterGate(gate, 'qr');
-    else if (gate) toast('Bạn đã vào cổng sự kiện rồi.', 'info', 'door-open');
+    if (gate) enterGate(gate);
     if (tram) {
       if (pass) {
         setTimeout(() => {
@@ -1862,7 +1855,7 @@
         }, 400);
       } else {
         store.set('pending_stamp', String(tram).toUpperCase());
-        toast(checkedIn() ? 'Nhập tên để nhận thẻ, dấu của trạm này sẽ được đóng ngay sau đó.' : 'Bạn cần nhận thẻ thông hành ở cổng check-in trước, rồi quét lại mã ở trạm nhé.', 'info', 'qr-code');
+        toast('Bạn chưa có thẻ thông hành. Nhập tên để tạo thẻ, dấu của trạm này sẽ được đóng ngay sau đó.', 'info', 'qr-code');
         setTimeout(() => $('#register').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' }), 400);
       }
     }

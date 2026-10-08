@@ -33,6 +33,7 @@
       flips: stats.flips || 0, pages: (stats.pages || []).slice().sort((a, b) => a - b), last: stats.last,
       chapters: get('chapters_done', []).map((i) => i + 1).sort(), stamps: pass ? pass.stamps.slice().sort() : [],
       prizes: [1, 2, 3, 4].map((s) => (spins[s] ? spins[s].prize : null)), claimed: !!(pass && pass.claimed),
+      checkin: (get('checkin', null) || {}).at || 0,
       first: 0, seen: Date.now()
     }];
   }
@@ -102,7 +103,8 @@
     const prize = (k) => sum((r) => r.prizes.filter((p) => p === k).length);
     const tiles = [
       [R.length, 'Người tham gia'],
-      [R.filter((r) => r.pid).length, 'Đã nhận thẻ'],
+      [R.filter((r) => r.pid).length, 'Đã tạo thẻ'],
+      [R.filter((r) => r.checkin).length, 'Đã check-in sự kiện'],
       [sum((r) => r.flips), 'Tổng lượt lật trang'],
       [(sum((r) => r.pagesN) / n).toFixed(1), `Trang đã xem trung bình (/${PAGE_COUNT})`],
       [R.filter((r) => r.chaptersN === 4).length, 'Nghe đủ 4 chương'],
@@ -110,6 +112,7 @@
       [prize('sticker'), 'Sticker đã trúng'],
       [prize('keychain'), 'Móc khoá đã trúng']
     ];
+    tiles.splice(5, 1); // bỏ ô "nghe đủ 4 chương" cho vừa 2 hàng × 4 ô
     $('#tiles').innerHTML = tiles.map(([v, l]) => `<div class="tile"><b>${v}</b><span>${l}</span></div>`).join('');
     $('#people-sub').textContent = state.source === 'api' ? `${R.length} người, sắp theo hoạt động gần nhất` : 'Số liệu của trình duyệt này';
     renderRows();
@@ -124,7 +127,7 @@
     const dots = (arr) => `<span class="dots" aria-label="${arr.length}/4">${[1, 2, 3, 4].map((i) => `<i class="${arr.includes(i) ? 'on' : ''}"></i>`).join('')}</span>`;
     $('#rows').innerHTML = rows.length ? rows.map((r) => `<tr>
       <td><span class="mono">${esc(r.pid || '—')}</span></td>
-      <td>${esc(r.name || '(chưa nhận thẻ)')}</td>
+      <td>${esc(r.name || '(chưa tạo thẻ)')}${r.checkin ? ' <small title="Đã check-in sự kiện">· đã tới</small>' : ''}</td>
       <td class="num">${r.flips}</td>
       <td class="num">${r.pagesN}/${PAGE_COUNT}<span class="bar"><i style="width:${Math.round((r.pagesN / PAGE_COUNT) * 100)}%"></i></span></td>
       <td>${pageName(r.last)}</td>
@@ -136,10 +139,10 @@
   }
 
   $('#btn-csv').addEventListener('click', () => {
-    const head = ['Mã thẻ', 'Tên', 'Lượt lật trang', 'Số trang đã xem', 'Các trang đã xem', 'Đang xem trang', 'Chương đã nghe', 'Dấu trạm', 'Quà trạm 1', 'Quà trạm 2', 'Quà trạm 3', 'Quà trạm 4', 'Đã nhận quà cuối', 'Lần đầu', 'Gần nhất', 'Mã trình duyệt'];
+    const head = ['Mã thẻ', 'Tên', 'Check-in sự kiện', 'Lượt lật trang', 'Số trang đã xem', 'Các trang đã xem', 'Đang xem trang', 'Chương đã nghe', 'Dấu trạm', 'Quà trạm 1', 'Quà trạm 2', 'Quà trạm 3', 'Quà trạm 4', 'Đã nhận quà cuối', 'Lần đầu', 'Gần nhất', 'Mã trình duyệt'];
     const cell = (v) => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
     const time = (t) => (t ? new Date(t).toISOString() : '');
-    const lines = state.rows.map((r) => [r.pid, r.name, r.flips, r.pagesN, r.pages.join(' '), r.last, r.chapters.join(' '), r.stamps.join(' '),
+    const lines = state.rows.map((r) => [r.pid, r.name, time(r.checkin), r.flips, r.pagesN, r.pages.join(' '), r.last, r.chapters.join(' '), r.stamps.join(' '),
       ...r.prizes.map((p) => (p ? PRIZE_LABEL[p] : '')), r.claimed ? 'có' : '', time(r.first), time(r.seen), r.vid].map(cell).join(','));
     const blob = new Blob(['﻿' + [head.map(cell).join(','), ...lines].join('\r\n')], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a');
@@ -151,7 +154,7 @@
   // Mã QR in cho cổng và bốn trạm: quét bằng camera điện thoại là mở thẳng trang
   function renderQR() {
     const base = location.origin + '/';
-    const items = [['Cổng check-in', 'Quét để nhận thẻ thông hành', GATE_CODE, `${base}?vao=${GATE_CODE}`]]
+    const items = [['Cổng check-in', 'Quét để check-in sự kiện', GATE_CODE, `${base}?vao=${GATE_CODE}`]]
       .concat(STATIONS.map(([name, code]) => [name, 'Quét để đóng dấu và quay thưởng', code, `${base}?tram=${code}`]));
     const grid = $('#qr-grid');
     if (grid.dataset.done) return;

@@ -79,9 +79,10 @@ Thư viện (three.js r147, GSAP 3.12, QRCode.js, StPageFlip, Phosphor Icons, fo
 ## 3. Luồng người chơi
 
 1. **Sách 4 chương (không bắt buộc):** đọc, cuối mỗi chương chạm vào một vật để nghe chuyện kể và mở huy hiệu.
-2. **Nhận thẻ ở cổng:** quét mã QR ở cổng check-in (mở trang với `?vao=CONG23`), nhập tên là có thẻ thông hành và mã QR riêng. Chưa quét mã cổng thì trang chỉ hướng dẫn cách nhận thẻ, không cho tạo thẻ.
-3. **Đi 4 trạm:** quét QR ở trạm (`?tram=HUONG1`...) hoặc nhập mã trạm. Dấu đóng vào trang visa, sau đó **quay vòng may mắn** một lần (sticker, móc khoá hoặc chúc may mắn).
-4. **Check-out:** đủ 4 dấu thì nhận quà cuối bằng mã QUA-XXXX, và mở **lá sớ gửi Táo** để chia sẻ.
+2. **Tạo thẻ thông hành:** nhập tên là có hộ chiếu và mã QR riêng. Tạo trước ở nhà hoặc ngay tại cổng đều được.
+3. **Check-in ở cổng (tuỳ chọn):** quét QR ở cổng (`?vao=CONG23`) để ghi nhận đã tới sự kiện, admin xem được.
+4. **Đi 4 trạm (chỉ ở sự kiện):** quét QR ở trạm (`?tram=HUONG1`...) hoặc nhập mã in dưới QR. Dấu đóng vào trang visa, sau đó **quay vòng may mắn** một lần (sticker, móc khoá hoặc chúc may mắn). Chưa có thẻ mà quét QR trạm thì tạo thẻ xong dấu được đóng ngay.
+5. **Check-out:** đủ 4 dấu thì nhận quà cuối bằng mã QUA-XXXX, và mở **lá sớ gửi Táo** để chia sẻ.
 
 **Mã dùng thử:** cổng `CONG23`, trạm `HUONG1`, `MAIAM2`, `NEPNH3`, `TOTLA4`. Trang quản trị có sẵn 5 mã QR để in.
 
@@ -105,7 +106,7 @@ Thư viện (three.js r147, GSAP 3.12, QRCode.js, StPageFlip, Phosphor Icons, fo
 
 ## 5. Đo lường và trang quản trị
 
-Trang ghi lại cho **từng mã thẻ**: số lần lật trang sách, các trang đã xem, trang đang xem, chương đã nghe, dấu trạm, quà vòng quay. Người chưa nhận thẻ vẫn được đếm theo mã trình duyệt, nhận thẻ xong thì gắn với mã thẻ.
+Trang ghi lại cho **từng mã thẻ**: số lần lật trang sách, các trang đã xem, trang đang xem, chương đã nghe, dấu trạm, quà vòng quay. Người chưa tạo thẻ vẫn được đếm theo mã trình duyệt, tạo thẻ xong thì gắn với mã thẻ. Trang quản trị cũng cho biết ai đã check-in ở cổng sự kiện.
 
 Xem tại **`/admin.html`** (ví dụ https://chuyen-nha-tao.vercel.app/admin.html): bảng từng người, tìm kiếm, sắp xếp, xuất CSV, và phần **in mã QR** cho cổng và 4 trạm.
 

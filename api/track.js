@@ -1,7 +1,7 @@
 // POST /api/track — nhận sự kiện từ trang (lật trang, nghe chuyện, đóng dấu, quay thưởng).
 // Mỗi người được nhận diện bằng vid (mã ngẫu nhiên của trình duyệt), gắn thêm mã thẻ khi đã nhận thẻ.
 // Dữ liệu Redis:
-//   u:{vid}   hash   pid, name, flips (số lần lật), last (trang đang xem), first, seen, claimed, prize{st}
+//   u:{vid}   hash   pid, name, flips (số lần lật), last (trang đang xem), first, seen, checkin, claimed, prize{st}
 //   pg:{vid}  set    các trang đã xem
 //   ch:{vid}  set    các chương đã nghe xong
 //   st:{vid}  set    các trạm đã đóng dấu
@@ -50,6 +50,8 @@ module.exports = async (req, res) => {
       cmds.push(['SADD', `st:${vid}`, String(n)]);
     } else if (e.t === 'spin' && n >= 1 && n <= 4 && PRIZES.has(e.prize)) {
       cmds.push(['HSET', key, `prize${n}`, e.prize]);
+    } else if (e.t === 'checkin') {
+      cmds.push(['HSETNX', key, 'checkin', String(now)]);
     } else if (e.t === 'claim') {
       cmds.push(['HSET', key, 'claimed', '1']);
     }
