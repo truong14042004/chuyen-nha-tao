@@ -1355,33 +1355,24 @@ body::after {
 
 /* =========================================================================
    NỀN PHẦN SÁCH (ngay dưới hero): tranh cá chép vượt sóng dưới trăng, tông pastel.
-   Tranh đứng yên theo khung màn hình khi cuộn qua phần sách (sticky), nội dung trượt qua phía trên.
+   Tranh đứng yên theo khung màn hình khi cuộn qua phần sách (sticky), quyển sách trượt qua phía trên.
+   Điện thoại: tranh dọc phủ kín. Máy tính: tranh nét ở giữa cao bằng màn hình, hai bên là trời cùng màu
+   + dải sóng cắt từ đáy tranh lặp đối xứng.
    ========================================================================= */
-#doc-sach { isolation: isolate; overflow: hidden; }
-.scene { position: absolute; inset: 0; z-index: -1; background: #cfc6cc; pointer-events: none; }
+/* overflow: clip (không dùng hidden): hidden biến phần sách thành khung cuộn riêng, làm hỏng sticky */
+#doc-sach { isolation: isolate; overflow: clip; padding-top: clamp(170px, 38vh, 340px); padding-bottom: clamp(90px, 16vh, 160px); }
+.scene { position: absolute; inset: 0; z-index: -1; pointer-events: none; overflow: clip;
+  background: linear-gradient(180deg, #bdb2bb 0, #d0c1be 15%, #dec8be 30%, #ddcdcc 45%, #d0c6c9 60%, #d3c9bf 72%, #d0cdc2 80%); }
 .scene-sticky { position: sticky; top: 0; height: 100vh; height: 100lvh; overflow: hidden; }
-.scene-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 42%; display: block;
-  animation: scene-drift 28s ease-in-out infinite alternate; will-change: transform; }
-/* Chuyển động rất chậm: phóng nhẹ và trôi lên một chút, như mây đang trôi */
-@keyframes scene-drift { from { transform: scale(1.04) translateY(0); } to { transform: scale(1.1) translateY(-1.5%); } }
-.motion-reduced .scene-img { animation: none; transform: none; }
-.scene-side { display: none; }
-/* Máy tính, màn hình ngang: tranh dọc phủ kín sẽ bị phóng to mờ và cắt mất cá. Thay vào đó:
-   giữa là tranh làm nhoè thành nền pastel, hai bên là tranh đúng tỉ lệ cao bằng màn hình, mờ dần vào giữa. */
-@media (min-width: 900px) and (min-aspect-ratio: 1/1) {
-  .scene-img { filter: blur(22px) saturate(.95) brightness(1.05); transform: scale(1.2); animation: none; }
-  .scene-side { display: block; position: absolute; top: 0; height: 100%; width: auto; aspect-ratio: 510 / 859; max-width: 42vw; object-fit: cover;
-    -webkit-mask-image: linear-gradient(90deg, #000 58%, transparent); mask-image: linear-gradient(90deg, #000 58%, transparent); will-change: transform; }
-  .scene-side-l { left: 0; transform-origin: 0 50%; animation: side-drift-l 26s ease-in-out infinite alternate; }
-  .scene-side-r { right: 0; transform-origin: 50% 50%; animation: side-drift-r 26s ease-in-out infinite alternate; }
-  @keyframes side-drift-l { from { transform: scale(1.02) translateY(0); } to { transform: scale(1.07) translateY(-1.2%); } }
-  @keyframes side-drift-r { from { transform: scaleX(-1) scale(1.02) translateY(0); } to { transform: scaleX(-1) scale(1.07) translateY(-1.2%); } }
-  .motion-reduced .scene-side-l { animation: none; transform: none; }
-  .motion-reduced .scene-side-r { animation: none; transform: scaleX(-1); }
-}
-/* Nối với hero tối ở trên, lớp kem mỏng cho chữ dễ đọc, chuyển dần sang nền kem ở dưới */
-.scene::before { content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none;
-  background: linear-gradient(180deg, #120b07 0, rgba(18, 11, 7, 0) 70px),
-    linear-gradient(180deg, rgba(255, 248, 240, .5) 0, rgba(255, 248, 240, .2) 300px, rgba(255, 248, 240, 0) 45%, rgba(255, 248, 240, .25) 85%, var(--bg) 100%); }
-#doc-sach .section-head h2, #doc-sach .section-head p { text-shadow: 0 1px 0 rgba(255, 248, 240, .7), 0 0 18px rgba(255, 246, 236, .9); }
+.scene-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 42%; display: block; z-index: 1; }
+.scene-waves { display: none; }
+/* Nối với hero tối ở trên, chuyển dần sang nền kem ở dưới (không phủ sương lên tranh) */
+.scene::after { content: ""; position: absolute; inset: 0; z-index: 3; pointer-events: none;
+  background: linear-gradient(180deg, #120b07 0, rgba(18, 11, 7, 0) 60px), linear-gradient(180deg, rgba(255, 248, 240, 0) 86%, var(--bg) 100%); }
 #doc-sach .flip-hint { text-shadow: 0 0 10px rgba(255, 246, 236, .95); color: var(--text); }
+@media (min-width: 900px) and (min-aspect-ratio: 1/1) {
+  .scene-img { left: 50%; width: auto; aspect-ratio: 510 / 859; transform: translateX(-50%); object-fit: cover;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); }
+  .scene-waves { display: block; position: absolute; left: 0; right: 0; bottom: 0; height: 20%; z-index: 0;
+    background: url("images/song-ngang.webp") repeat-x center bottom / auto 100%; }
+}

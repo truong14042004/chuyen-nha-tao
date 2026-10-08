@@ -493,8 +493,9 @@
   });
 
   // ---------- Tab chương
+  // Thanh chọn chương (đã bỏ khỏi trang theo yêu cầu; giữ code để bật lại khi cần)
   const tabsEl = $('#chapter-tabs');
-  CHAPTERS.forEach((c, i) => {
+  if (tabsEl) CHAPTERS.forEach((c, i) => {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'chapter-tab'; b.setAttribute('role', 'tab'); b.id = 'tab-' + i;
     b.setAttribute('aria-controls', 'flip-stage');
@@ -510,6 +511,7 @@
   });
 
   function moveIndicator(animate) {
+    if (!tabsEl) return;
     const tab = $('#tab-' + book.idx), ind = $('.tab-indicator', tabsEl);
     const x = tab.offsetLeft - 6, w = tab.offsetWidth;
     if (hasGsap && animate && !reduceMotion) gsap.to(ind, { x, width: w, duration: 0.45, ease: 'power3.out' });
@@ -518,6 +520,7 @@
   window.addEventListener('resize', () => moveIndicator(false));
 
   function syncTabs() {
+    if (!tabsEl) return;
     $$('.chapter-tab', tabsEl).forEach((t, i) => {
       t.setAttribute('aria-selected', String(i === book.idx));
       t.tabIndex = i === book.idx ? 0 : -1;

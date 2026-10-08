@@ -102,25 +102,14 @@
     <!-- =================================================================
          S02 · INTERACTIVE STORYBOOK HUB (4 chương + lắng nghe + huy hiệu)
          ================================================================= -->
-    <section class="section" id="doc-sach" aria-labelledby="book-title">
-      <!-- Nền của phần sách: tranh cá chép vượt sóng dưới trăng (tông pastel), đứng yên theo màn hình khi cuộn -->
-      <div class="scene" aria-hidden="true"><div class="scene-sticky">
+    <section class="section" id="doc-sach" aria-label="Cuốn sách bốn chương">
+      <!-- Nền của phần sách: tranh cá chép vượt sóng dưới trăng (tông pastel), đứng yên theo màn hình khi cuộn.
+           Máy tính: tranh ở giữa, hai bên là trời cùng màu + dải sóng nối tiếp. -->
+      <div class="scene" aria-hidden="true"><div class="scene-sticky" id="scene">
+        <div class="scene-waves"></div>
         <img class="scene-img" src="images/nen-ca-chep.webp" alt="" decoding="async">
-        <!-- Máy tính (màn hình ngang): tranh dọc đặt hai bên, bên phải lật gương; ở giữa là chính tranh làm nhoè -->
-        <img class="scene-side scene-side-l" src="images/nen-ca-chep.webp" alt="" decoding="async">
-        <img class="scene-side scene-side-r" src="images/nen-ca-chep.webp" alt="" decoding="async">
       </div></div>
       <div class="container">
-        <div class="section-head reveal">
-          <h2 id="book-title">Cuốn sách bốn chương</h2>
-          <p>Lật từng trang để đọc câu chuyện gian bếp ngày Tết. Cuối mỗi chương có một câu chuyện nhỏ để lắng nghe và mở huy hiệu.</p>
-          <p class="book-optional"><i class="ph ph-info" aria-hidden="true"></i> Sách là phần đọc thêm, không bắt buộc. <a href="#tram-trai-nghiem">Tạo thẻ thông hành và đi bốn trạm</a></p>
-        </div>
-
-        <div class="chapter-tabs reveal" role="tablist" aria-label="Các chương" id="chapter-tabs">
-          <span class="tab-indicator" aria-hidden="true"></span>
-        </div>
-
         <!-- S02 + S03: quyển sách lật trang (StPageFlip). Trang do app.js dựng. -->
         <div class="flip-stage reveal" id="flip-stage" tabindex="0" aria-roledescription="sách lật trang" aria-label="Cuốn sách Chuyện Nhà Táo. Dùng phím mũi tên trái, phải để lật trang.">
           <div class="flipbook" id="flipbook"></div>
