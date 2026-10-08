@@ -18,8 +18,10 @@
 
   const state = { rows: [], sort: { k: 'seen', dir: -1 }, q: '', source: 'api' };
   const KEY = 'cnt_admin_key';
-  const getKey = () => { try { return sessionStorage.getItem(KEY) || ''; } catch (e) { return ''; } };
-  const setKey = (v) => { try { if (v) sessionStorage.setItem(KEY, v); else sessionStorage.removeItem(KEY); } catch (e) { /* bỏ qua */ } };
+  // Mật khẩu nhớ trong tab đang mở, tự hết hạn sau 8 tiếng (phòng để quên máy ở bàn sự kiện)
+  const TTL = 8 * 3600 * 1000;
+  const getKey = () => { try { const v = JSON.parse(sessionStorage.getItem(KEY) || 'null'); return v && Date.now() - v.at < TTL ? v.key : ''; } catch (e) { return ''; } };
+  const setKey = (v) => { try { if (v) sessionStorage.setItem(KEY, JSON.stringify({ key: v, at: Date.now() })); else sessionStorage.removeItem(KEY); } catch (e) { /* bỏ qua */ } };
 
   // Dữ liệu của chính trình duyệt này (đọc localStorage do app.js ghi)
   function localRows() {
@@ -44,7 +46,8 @@
     let res;
     try { res = await fetch('/api/admin', { headers: { 'x-admin-key': getKey() }, cache: 'no-store' }); }
     catch (e) { return showLocal('Không kết nối được máy chủ.'); }
-    if (res.status === 401) { setKey(''); return showLogin(getKey() ? '' : ''); }
+    if (res.status === 401) { setKey(''); return showLogin(''); }
+    if (res.status === 429) { setKey(''); return showLogin('Sai mật khẩu quá nhiều lần. Thử lại sau 15 phút.'); }
     if (res.status === 404 || res.status === 405 || res.status === 501) return showLocal('Đang chạy ở máy nên chưa có API.');
     let data = {};
     try { data = await res.json(); } catch (e) { /* bỏ qua */ }
@@ -86,7 +89,7 @@
     setKey($('#adm-key').value.trim());
     const before = getKey();
     await load();
-    if (!$('#login').hidden && before) $('#login-err').textContent = 'Mật khẩu chưa đúng.';
+    if (!$('#login').hidden && before && !$('#login-err').textContent) $('#login-err').textContent = 'Mật khẩu chưa đúng.';
   });
   $('#btn-logout').addEventListener('click', () => { setKey(''); showLogin(''); });
   $('#btn-reload').addEventListener('click', load);

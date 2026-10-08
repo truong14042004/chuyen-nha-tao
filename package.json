@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "start": "npx -y http-server . -p 5173 -c-1 -o",
-    "dev": "npx -y http-server . -p 5173 -c-1"
+    "dev": "npx -y http-server . -p 5173 -c-1",
+    "dev:full": "node dev-server.js"
   }
 }

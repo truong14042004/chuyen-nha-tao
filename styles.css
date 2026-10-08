@@ -1338,3 +1338,6 @@ body::after {
 .reg-has h3 { font-size: 22px; font-weight: 800; }
 .reg-has .lead { color: var(--text-muted); font-size: 15px; }
 .reg-has .mono { font-family: ui-monospace, Consolas, monospace; color: var(--text); }
+/* Hộ chiếu khi đã có staff: hướng dẫn đưa QR cho nhân sự */
+.pp-staff-hint { display: flex; gap: 10px; align-items: flex-start; margin-top: 12px; padding: 12px 14px; border-radius: 14px; background: var(--gold-soft); font-size: 14.5px; line-height: 1.5; }
+.pp-staff-hint i { font-size: 22px; color: var(--gold-ink); flex: none; }

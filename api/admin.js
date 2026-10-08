@@ -1,7 +1,7 @@
 // GET /api/admin — danh sách người tham gia cho trang quản trị (admin.html).
 // Bảo vệ bằng mật khẩu ADMIN_KEY (đặt trong Vercel → Settings → Environment Variables),
 // gửi qua header x-admin-key để không lộ trong đường dẫn.
-const { configured, redis, toObject } = require('./_store');
+const { configured, redis, toObject, checkKey } = require('./_store');
 
 const LIMIT = 2000;
 
@@ -10,9 +10,12 @@ module.exports = async (req, res) => {
   if (req.method !== 'GET') { res.setHeader('Allow', 'GET'); return res.status(405).end(); }
   if (!configured()) return res.status(503).json({ configured: false, reason: 'store' });
   if (!process.env.ADMIN_KEY) return res.status(503).json({ configured: false, reason: 'key' });
-  if (req.headers['x-admin-key'] !== process.env.ADMIN_KEY) return res.status(401).json({ error: 'key' });
 
   try {
+    // Sai mật khẩu 5 lần thì khoá 15 phút
+    const auth = await checkKey(req, [['admin', process.env.ADMIN_KEY]]);
+    if (!auth.ok) return res.status(auth.status).json({ error: auth.status === 429 ? 'locked' : 'key' });
+
     const [vids] = await redis([['ZREVRANGE', 'users', '0', String(LIMIT - 1)]]);
     const list = vids || [];
     const cmds = [];

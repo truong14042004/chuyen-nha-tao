@@ -837,7 +837,79 @@
   const ALPHA = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // bỏ ký tự dễ nhầm (0/O, 1/I/L)
   const randCode = (n) => Array.from({ length: n }, () => ALPHA[Math.floor(Math.random() * ALPHA.length)]).join('');
 
-  let pass = store.get('pass', null); // { id, nickname, email?, consent, stamps:[], giftCode, claimed, synced, offlineId?, spins? }
+  let pass = store.get('pass', null); // { id, nickname, email?, consent, stamps:[], giftCode, claimed, synced, offlineId?, spins?, serverPrizes?, given? }
+
+  /* Thẻ trên máy chủ: staff quét QR hộ chiếu để đóng dấu (trang staff.html).
+   * Khi /api/pass trả lời được (đã nối kho dữ liệu) thì server.on = true: người chơi không tự đóng dấu,
+   * điện thoại hỏi máy chủ vài giây một lần để nhận dấu mới, quà vòng quay (máy chủ bốc) và quà đã trao.
+   * Chưa nối máy chủ (chạy ở máy, chưa cấu hình) thì giữ cách tự nhập mã trạm để demo. */
+  const server = { on: false, busy: false, timer: 0 };
+  const isJson = (r) => (r.headers.get('content-type') || '').includes('json');
+  function setServer(on) {
+    if (server.on === on) return;
+    server.on = on;
+    const fc = $('#form-code'), hint = $('#pp-staff-hint');
+    if (fc) fc.hidden = on;
+    if (hint) hint.hidden = !on;
+    renderCheckout();
+  }
+  async function pushPass(tries = 0) {
+    if (!pass || !pass.synced) return false;
+    try {
+      const r = await fetch('/api/pass', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pid: pass.id, name: pass.nickname, vid: meter.vid, gift: pass.giftCode }) });
+      if (!isJson(r)) return false;
+      // Mã trùng với thẻ của người khác (rất hiếm): đổi mã rồi gửi lại
+      if (r.status === 409 && tries < 3) { pass.id = 'TAO-' + randCode(6); store.set('pass', pass); renderTicket(); return pushPass(tries + 1); }
+      if (!r.ok) return false;
+      mergeServer(await r.json());
+      return true;
+    } catch (e) { return false; }
+  }
+  async function pullPass() {
+    if (!pass || !pass.synced || server.busy || !navigator.onLine) return;
+    server.busy = true;
+    try {
+      const r = await fetch('/api/pass?id=' + encodeURIComponent(pass.id), { cache: 'no-store' });
+      if (r.status === 404 && isJson(r)) setServer(await pushPass());
+      else if (r.ok && isJson(r)) { setServer(true); mergeServer(await r.json()); }
+      else setServer(false);
+    } catch (e) { /* mất mạng: thử lại lần sau */ }
+    server.busy = false;
+  }
+  // Nhận dữ liệu máy chủ: dấu mới thì lật tới trang visa và đóng dấu như lúc tự quét
+  function mergeServer(v) {
+    if (!v || !pass || v.pid !== pass.id) return;
+    const beforeGiven = JSON.stringify(pass.given || {}), wasClaimed = pass.claimed;
+    pass.serverPrizes = v.prizes || {};
+    pass.given = v.given || {};
+    if (v.claimed) pass.claimed = true;
+    const fresh = Object.keys(v.stamps || {}).map(Number).filter((st) => !pass.stamps.includes(st)).sort((a, b) => a - b);
+    store.set('pass', pass);
+    // Nhiều dấu cùng lúc (máy vừa có mạng lại): ghi im lặng các dấu trước, chỉ diễn hoạt cảnh dấu cuối
+    fresh.slice(0, -1).forEach((st) => { pass.stamps.push(st); pass.stampedAt = Object.assign({}, pass.stampedAt, { [st]: v.stamps[st] }); });
+    if (fresh.length) { doStamp(fresh[fresh.length - 1], v.stamps[fresh[fresh.length - 1]], true); return; }
+    if (JSON.stringify(pass.given) !== beforeGiven) ppRefresh([3, 4, 5, 6]);
+    if (pass.claimed && !wasClaimed) { renderCheckout(); toast('Nhân sự đã xác nhận trao quà cuối. Chúc bạn năm mới thật ấm!', 'gold', 'gift'); }
+  }
+  // Hỏi máy chủ 6 giây một lần, chỉ khi phần hộ chiếu đang hiện trên màn hình (lúc đưa QR cho staff),
+  // trang không bị ẩn, và thẻ còn việc chờ (chưa đủ dấu hoặc chưa nhận quà cuối). Giữ số lệnh trong gói Upstash miễn phí.
+  server.inView = false;
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver((es) => {
+      server.inView = es.some((e) => e.isIntersecting);
+      if (server.inView) pullPass();
+    }).observe($('#tram-trai-nghiem'));
+  } else server.inView = true;
+  const waiting = () => pass && (pass.stamps.length < 4 || !pass.claimed);
+  function startPolling() {
+    clearInterval(server.timer);
+    server.timer = setInterval(() => {
+      if (document.visibilityState === 'visible' && server.inView && waiting()) pullPass();
+    }, 6000);
+    pullPass();
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && server.inView && waiting()) pullPass(); });
 
   // Thẻ tạo trước (ở nhà hoặc tại cổng); dấu trạm chỉ có khi quét mã ở trạm tại sự kiện.
   // QR ở cổng (?vao=CONG23) chỉ ghi nhận đã check-in sự kiện, không chặn việc tạo thẻ.
@@ -903,6 +975,7 @@
     track('offline_id_synced', { renamed });
     renderTicket();
     renderRegister();
+    startPolling();
     toast(`Đã đồng bộ thẻ. Mã chính thức của bạn: ${pass.id}.` + (renamed ? ` Tên bị trùng nên được đổi thành "${esc(pass.nickname)}".` : ''), 'ok', 'wifi-high');
   }
 
@@ -984,6 +1057,7 @@
       measure('register');
       store.set('new_pass', false);
       renderRegister();
+      startPolling();
       track('form_submit');
       track(consent ? 'consent_accepted' : 'consent_declined');
       track('virtual_id_created', { offline });
@@ -1175,7 +1249,7 @@
           ${on && photo ? `<figure class="pp-polaroid" style="--r:${id % 2 ? 4 : -5}deg"><img src="${photo}" alt="Khoảnh khắc ở ${s.name}"><button class="pp-polaroid-btn" type="button" data-moment="${id}" aria-label="Đổi ảnh khoảnh khắc ở ${s.name}"><i class="ph ph-camera" aria-hidden="true"></i></button></figure>` : ''}
         </div>
         ${on ? `<div class="pp-visa-foot">
-          ${spin ? `<p class="pp-prize ${spin.prize === 'none' ? 'is-miss' : ''}"><i class="ph-fill ph-${PRIZES[spin.prize].icon}" aria-hidden="true"></i>${PRIZES[spin.prize].label}</p>`
+          ${spin ? `<p class="pp-prize ${spin.prize === 'none' ? 'is-miss' : ''}"><i class="ph-fill ph-${PRIZES[spin.prize].icon}" aria-hidden="true"></i>${PRIZES[spin.prize].label}${pass.given && pass.given[id] && spin.prize !== 'none' ? ' · đã nhận' : ''}</p>`
             : `<button class="pp-photo-add pp-spin" type="button" data-spin="${id}"><i class="ph ph-spiral" aria-hidden="true"></i> Quay thưởng</button>`}
           ${photo ? '' : `<button class="pp-photo-add" type="button" data-moment="${id}"><i class="ph ph-camera-plus" aria-hidden="true"></i> Lưu ảnh</button>`}
         </div>` : ''}
@@ -1215,7 +1289,7 @@
   function ppQR() {
     const el = $('#pp-qr');
     if (!el) return;
-    if (typeof QRCode !== 'undefined') new QRCode(el, { text: 'https://chuyennhatao.vn/p/' + pass.id, width: 112, height: 112, colorDark: '#1b120c', colorLight: '#fffdf7', correctLevel: QRCode.CorrectLevel.M });
+    if (typeof QRCode !== 'undefined') new QRCode(el, { text: location.origin + '/?the=' + pass.id, width: 112, height: 112, colorDark: '#1b120c', colorLight: '#fffdf7', correctLevel: QRCode.CorrectLevel.M });
     else el.innerHTML = `<span class="mono" style="font-size:11px">${pass.id}</span>`;
   }
 
@@ -1255,7 +1329,8 @@
         <p class="flip-status" id="pp-status" aria-live="polite">Bìa hộ chiếu</p>
         <button class="icon-btn" type="button" id="pp-next" aria-label="Trang sau"><i class="ph ph-caret-right" aria-hidden="true"></i></button>
       </div>
-      ${n < 4 ? `<form class="code-entry pp-code" id="form-code" novalidate>
+      <p class="pp-staff-hint" id="pp-staff-hint" ${server.on && n < 4 ? '' : 'hidden'}><i class="ph ph-qr-code" aria-hidden="true"></i> Đến mỗi trạm, đưa mã QR trên trang thông tin hộ chiếu cho nhân sự quét. Dấu sẽ tự hiện ở đây.</p>
+      ${n < 4 ? `<form class="code-entry pp-code" id="form-code" novalidate ${server.on ? 'hidden' : ''}>
         <label for="f-code" style="font-weight:600;font-size:15px">Mã QR mờ hoặc không quét được? Nhập mã trạm</label>
         <div class="code-row">
           <input class="input" id="f-code" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="6 ký tự" aria-describedby="f-code-help">
@@ -1515,12 +1590,15 @@
     // Chọn ô theo tỉ lệ, rồi cho kim dừng ở một điểm ngẫu nhiên trong ô đó
     let r = Math.random() * 100, k = 0;
     while (k < WHEEL.length - 1 && r >= WHEEL[k].share) { r -= WHEEL[k].share; k++; }
+    // Có kết quả máy chủ bốc (staff đóng dấu): kim dừng ở một ô đúng loại quà đó
+    const fixed = pass.serverPrizes && pass.serverPrizes[id];
+    if (fixed) { const ks = WHEEL.map((x, i) => (x.prize === fixed ? i : -1)).filter((i) => i >= 0); k = ks[Math.floor(Math.random() * ks.length)]; }
     const at = segStart(k) + WHEEL[k].share * 3.6 * (0.15 + Math.random() * 0.7);
     const prize = WHEEL[k].prize;
     // Lưu kết quả ngay khi bấm quay: đóng hộp thoại giữa chừng cũng không quay lại được
     pass.spins = Object.assign({}, pass.spins, { [id]: { prize, at: Date.now() } });
     store.set('pass', pass);
-    measure('spin', { st: id, prize });
+    if (!fixed) measure('spin', { st: id, prize });
     track('wheel_spin', { station: id, prize });
     const wheel = $('#wheel');
     const turn = 360 * (reduceMotion ? 1 : 6) + (360 - at);
@@ -1578,13 +1656,21 @@
     if (!/^[A-Z0-9]{6}$/.test(code)) { toast('Mã trạm gồm 6 ký tự, in dưới mã QR của trạm.', 'err'); input && input.classList.add('shake'); return; }
     if (!st) { toast('Mã này chưa khớp với trạm nào. Bạn kiểm tra lại hoặc nhờ nhân sự quét giúp nhé.', 'err'); input && input.classList.add('shake'); return; }
     if (pass.stamps.includes(st.id)) { toast(`${st.name} đã đóng dấu cho bạn rồi.`, 'info', 'seal-check'); ppGo(PP.visa(st.id)); return; }
-    pass.stamps.push(st.id);
-    pass.stampedAt = Object.assign({}, pass.stampedAt, { [st.id]: Date.now() });
-    store.set('pass', pass);
-    track('stamp_added', { station: st.id });
-    measure('stamp', { st: st.id });
     if (input) input.value = '';
+    doStamp(st.id);
+  }
+
+  // Đóng dấu trạm id: từ mã trạm tự nhập (bản demo) hoặc từ máy chủ khi staff quét QR (fromServer)
+  function doStamp(id, ts, fromServer) {
+    const st = STATIONS[id - 1];
+    if (pass.stamps.includes(id)) return;
+    pass.stamps.push(id);
+    pass.stampedAt = Object.assign({}, pass.stampedAt, { [id]: ts || Date.now() });
+    store.set('pass', pass);
+    track('stamp_added', { station: id, by: fromServer ? 'staff' : 'self' });
+    if (!fromServer) measure('stamp', { st: id });
     const complete = pass.stamps.length === 4;
+    const hint = $('#pp-staff-hint'); if (hint && complete) hint.hidden = true;
 
     // Cập nhật nội dung các trang, lật tới trang visa rồi mới đóng dấu
     ppRefresh([PP.data, PP.guide, PP.visa(st.id), PP.done]);
@@ -1631,7 +1717,9 @@
       <div><h3>Chúc mừng, bạn đã đi đủ bốn trạm</h3>
       <p style="color:var(--text-muted);margin-top:6px">${pass.claimed ? 'Quà đã được trao. Cảm ơn bạn đã đồng hành.' : 'Đưa mã này cho nhân sự tại bàn check-out. Mã chỉ dùng được một lần.'}</p></div>
       <p class="gift-code ${pass.claimed ? 'is-claimed' : ''}" aria-label="Mã nhận quà ${pass.giftCode.split('').join(' ')}">${pass.giftCode}</p>
-      ${pass.claimed ? '' : '<button class="btn btn-ghost" type="button" id="btn-claim"><i class="ph ph-hand-heart" aria-hidden="true"></i> Nhân sự xác nhận đã trao quà</button>'}
+      ${pass.claimed ? '' : server.on
+        ? '<p class="help"><i class="ph ph-qr-code" aria-hidden="true"></i> Nhân sự quét QR hộ chiếu của bạn ở bàn check-out để xác nhận trao quà.</p>'
+        : '<button class="btn btn-ghost" type="button" id="btn-claim"><i class="ph ph-hand-heart" aria-hidden="true"></i> Nhân sự xác nhận đã trao quà</button>'}
       ${wonList()}
       <div class="optin">
         <strong>Viết lá sớ gửi Táo</strong>
@@ -2001,6 +2089,7 @@
   renderTicket();
   renderRegister();
   renderLetter();
+  if (pass) startPolling();
 
   // QR ở cổng: ?vao=CONG23 → ghi nhận check-in. QR ở trạm: ?tram=HUONG1 → đóng dấu.
   // Xử lý xong thì xoá tham số khỏi thanh địa chỉ để tải lại trang không đóng dấu lần nữa.
@@ -2012,7 +2101,9 @@
       history.replaceState(null, '', location.pathname + (qs.toString() ? '?' + qs : '') + location.hash);
     }
     if (gate) enterGate(gate);
-    if (tram) {
+    if (tram && server.on) {
+      toast('Ở sự kiện, nhân sự sẽ quét mã QR trên hộ chiếu của bạn để đóng dấu.', 'info', 'qr-code');
+    } else if (tram) {
       if (pass) {
         setTimeout(() => {
           $('#ticket-slot').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });

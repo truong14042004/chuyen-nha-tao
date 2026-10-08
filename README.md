@@ -121,17 +121,32 @@ Chưa làm các bước trên, hoặc mở ở máy (localhost), thì trang qu�
 
 ---
 
-## 6. Một số điểm kỹ thuật
+## 6. Trang nhân sự (staff quét QR đóng dấu)
+
+Khi đã nối kho dữ liệu (mục 5), thẻ được lưu trên máy chủ và **chỉ nhân sự mới đóng dấu được**:
+
+1. Nhân sự mở **`/staff.html`** trên điện thoại, nhập mật khẩu `STAFF_KEY`, chọn chỗ đứng (một trong 4 trạm hoặc bàn check-out).
+2. Bấm **Mở camera**, quét QR trên trang thông tin hộ chiếu của người chơi. Ở trạm, quét xong là dấu được đóng ngay; không quét được thì nhập mã thẻ `TAO-XXXXXX`.
+3. Máy chủ bốc quà vòng quay của trạm đó. Điện thoại người chơi tự hiện dấu và vòng quay sau vài giây, kim dừng đúng quà đã bốc. Trúng quà thì nhân sự bấm **Đã trao …**.
+4. Ở bàn check-out: quét QR, đủ 4 dấu thì bấm **Xác nhận trao quà cuối** (mỗi thẻ chỉ một lần), và trao nốt quà vòng quay còn thiếu nếu có.
+
+**Cài đặt thêm trên Vercel:** Settings → Environment Variables → thêm `STAFF_KEY` (mật khẩu nhân sự, khác `ADMIN_KEY`) → Redeploy. Mật khẩu admin cũng đăng nhập được trang staff. Sai mật khẩu 5 lần thì bị khoá 15 phút, đăng nhập tự hết hạn sau 8 tiếng.
+
+**Chạy thử trọn luồng ở máy:** `npm run dev:full` rồi mở http://localhost:5174 (máy chủ thử có sẵn Redis giả lập, mật khẩu staff `staff123`, admin `admin123`). Chạy `npm start` (cổng 5173, không có API) thì trang tự quay về cách cũ: người chơi tự nhập mã trạm để demo.
+
+---
+
+## 7. Một số điểm kỹ thuật
 
 - **Lưu trữ:** thẻ, dấu trạm, quà, ảnh khoảnh khắc và lá sớ lưu trong `localStorage` của người chơi. Số liệu đo lường gửi lên `/api/track` (Upstash Redis). Ảnh và lời trong lá sớ không gửi lên máy chủ.
 - **Mất mạng:** thẻ tạo lúc mất mạng có mã `OFF-`, có mạng lại tự đổi sang `TAO-`. Sự kiện đo lường được giữ lại trên máy và gửi khi có mạng.
-- **Vòng quay** đang quay trên máy người chơi (kết quả lưu ngay khi bấm quay, đóng giữa chừng cũng không quay lại được). Muốn chặn gian lận triệt để thì chuyển phần chọn quà lên máy chủ.
+- **Vòng quay:** khi có máy chủ, quà do máy chủ bốc lúc staff đóng dấu (tỉ lệ ở `api/_store.js` `PRIZE_WEIGHTS`, giữ khớp `WHEEL` trong `app.js`), điện thoại chỉ diễn hoạt cảnh. Không có máy chủ thì quay trên máy người chơi.
 - **Analytics:** sự kiện cũng được đẩy vào `window.dataLayer`, gắn Google Tag Manager là đọc được.
 - **Xoá dữ liệu thử:** cuối trang, mục "Tôi muốn xóa dữ liệu", bấm **Xóa dữ liệu trên máy**, gõ XOÁ để xác nhận.
 
 ---
 
-## 7. Việc nhóm cần chốt
+## 8. Việc nhóm cần chốt
 
 - Mã cổng thật (đang là `CONG23`), tên 4 trạm và mã trạm.
 - Danh sách quà vòng quay, số lượng mỗi loại, tỉ lệ trúng.
