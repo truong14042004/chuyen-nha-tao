@@ -66,7 +66,7 @@ ChuyenNhaTao/
 │  ├─ admin.js       Trả số liệu cho trang quản trị (cần mật khẩu)
 │  └─ _store.js      Kết nối Upstash Redis
 ├─ fish.stl          Model cá (từ pen "Flying lanterns and a Koi fish" của prisoner849)
-├─ images/           Tranh 4 chương, giay-cu.jpg (nền giấy cũ), canh/ (dải tranh dưới hero: nền + 10 lớp mây, sóng, cá)
+├─ images/           Tranh 4 chương, giay-cu.jpg (nền giấy cũ), nen-ca-chep.webp (nền phần sách)
 ├─ audio/            (tuỳ chọn) chuong-N.mp3 giọng đọc chương, ke-chuyen-N.mp3 chuyện kể cuối chương
 ├─ package.json      Lệnh npm start
 └─ chay-du-an.bat    Chạy nhanh trên Windows
