@@ -54,6 +54,10 @@
     .log { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
     .log li { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; padding: 8px 0; border-bottom: 1px solid var(--line); }
     .log small { color: var(--text-muted); white-space: nowrap; }
+    .otp { display: grid; gap: 8px; padding: 16px; border-radius: 16px; background: #2a1710; color: #fff3d6; text-align: center; }
+    .otp-label { font-size: 14px; font-weight: 600; color: #f3d27a; } .otp-label small { display: block; font-weight: 500; color: #e9d6b8; font-size: 12.5px; }
+    .otp-code { font-family: ui-monospace, Consolas, monospace; font-size: 44px; font-weight: 800; letter-spacing: .18em; }
+    .otp-bar { height: 5px; border-radius: 3px; background: rgba(255, 243, 214, .2); overflow: hidden; } .otp-bar i { display: block; height: 100%; background: #f3d27a; transform-origin: left; }
     .badge-n { padding: 6px 12px; border-radius: 999px; background: var(--gold-soft); color: var(--gold-ink); font-weight: 800; white-space: nowrap; }
   </style>
 </head>
@@ -85,6 +89,13 @@
     <div id="app" hidden>
       <div style="display:grid;gap:16px">
         <div class="where"><i class="ph-fill ph-map-pin" aria-hidden="true"></i><strong id="where-name"></strong><button type="button" id="btn-place">Đổi chỗ</button></div>
+
+        <!-- Mã dự phòng của trạm: người chơi không quét được QR thì nhân sự đọc mã này -->
+        <section class="otp" id="otp" hidden aria-live="polite">
+          <span class="otp-label">Mã dự phòng của trạm <small>đọc cho người chơi nhập khi không quét được QR</small></span>
+          <strong class="otp-code" id="otp-code">······</strong>
+          <span class="otp-bar"><i id="otp-bar"></i></span>
+        </section>
 
         <section class="card" id="scan-card" aria-labelledby="scan-title">
           <h2 id="scan-title">Quét QR trên hộ chiếu người chơi</h2>

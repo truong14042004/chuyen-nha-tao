@@ -848,8 +848,9 @@
   function setServer(on) {
     if (server.on === on) return;
     server.on = on;
-    const fc = $('#form-code'), hint = $('#pp-staff-hint');
+    const fc = $('#form-code'), fo = $('#form-otp'), hint = $('#pp-staff-hint');
     if (fc) fc.hidden = on;
+    if (fo) fo.hidden = !on;
     if (hint) hint.hidden = !on;
     renderCheckout();
     renderRegister();
@@ -878,6 +879,25 @@
     } catch (e) { /* mất mạng: thử lại lần sau */ }
     server.busy = false;
   }
+  // Tự đóng dấu bằng mã dự phòng 6 số (đổi mỗi phút) nhân sự đọc khi không quét được QR
+  async function stampByCode(raw) {
+    const code = String(raw || '').replace(/\D/g, '');
+    const input = $('#f-otp');
+    const shake = () => { if (input) { input.classList.remove('shake'); void input.offsetWidth; input.classList.add('shake'); } };
+    if (code.length !== 6) { toast('Mã gồm 6 chữ số, nhân sự sẽ đọc cho bạn.', 'err'); shake(); return; }
+    let r, data = {};
+    try {
+      r = await fetch('/api/pass', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'code', pid: pass.id, code }) });
+      data = await r.json().catch(() => ({}));
+    } catch (e) { toast('Mất mạng nên chưa đóng dấu được. Nhờ nhân sự quét QR hoặc thử lại khi có mạng.', 'err', 'wifi-slash'); return; }
+    track('stamp_by_code', { ok: r.ok });
+    if (r.status === 429) { toast('Nhập sai quá nhiều lần. Thử lại sau 15 phút, hoặc nhờ nhân sự quét QR.', 'err'); shake(); return; }
+    if (!r.ok) { toast(data.error === 'code' ? 'Mã chưa đúng hoặc đã hết hạn. Hỏi nhân sự mã mới nhất nhé.' : 'Chưa đóng dấu được, nhờ nhân sự quét QR giúp bạn.', 'err'); shake(); return; }
+    if (input) input.value = '';
+    if (data.note === 'already') { toast(`${STATIONS[data.station - 1].name} đã đóng dấu cho bạn rồi.`, 'info', 'seal-check'); ppGo(PP.visa(data.station)); return; }
+    mergeServer(data.pass);
+  }
+
   // Nhận dữ liệu máy chủ: dấu mới thì lật tới trang visa và đóng dấu như lúc tự quét
   function mergeServer(v) {
     if (!v || !pass || v.pid !== pass.id) return;
@@ -1354,6 +1374,14 @@
       <div class="pp-staff-hint" id="pp-staff-hint" ${server.on && n < 4 ? '' : 'hidden'}><i class="ph ph-qr-code" aria-hidden="true"></i>
         <span>Đến mỗi trạm, đưa mã QR hộ chiếu cho nhân sự quét. Dấu sẽ tự hiện ở đây.</span>
         <button class="btn btn-primary btn-sm" type="button" data-show-qr><i class="ph ph-qr-code" aria-hidden="true"></i> Mở mã QR</button></div>
+      ${n < 4 ? `<form class="code-entry pp-code" id="form-otp" novalidate ${server.on ? '' : 'hidden'}>
+        <label for="f-otp" style="font-weight:600;font-size:15px">Không quét được QR? Nhập mã 6 số nhân sự đọc cho bạn</label>
+        <div class="code-row">
+          <input class="input" id="f-otp" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" placeholder="6 chữ số" aria-describedby="f-otp-help">
+          <button class="btn btn-primary" type="submit">Đóng dấu</button>
+        </div>
+        <p class="help" id="f-otp-help">Mã của mỗi trạm đổi sau mỗi phút, hiện trên máy của nhân sự.</p>
+      </form>` : ''}
       ${n < 4 ? `<form class="code-entry pp-code" id="form-code" novalidate ${server.on ? 'hidden' : ''}>
         <label for="f-code" style="font-weight:600;font-size:15px">Mã QR mờ hoặc không quét được? Nhập mã trạm</label>
         <div class="code-row">
@@ -1406,6 +1434,8 @@
 
     const fc = $('#form-code');
     if (fc) fc.addEventListener('submit', (e) => { e.preventDefault(); addStamp($('#f-code').value); });
+    const fo = $('#form-otp');
+    if (fo) fo.addEventListener('submit', (e) => { e.preventDefault(); stampByCode($('#f-otp').value); });
 
     if (animate) {
       if (hasGsap && !reduceMotion) gsap.from('#pp-stage', { y: 30, opacity: 0, duration: 0.7, ease: 'power3.out' });

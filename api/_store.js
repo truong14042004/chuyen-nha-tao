@@ -50,6 +50,32 @@ function rollPrize(noMoreNone) {
   return pool[0][0];
 }
 
+// Đóng dấu trạm st cho thẻ (hash o, khoá key): lệnh Redis ghi dấu + bốc quà vòng quay của trạm đó
+function stampCmds(o, key, st, now) {
+  // Luật "không có gì" tối đa 1 lần cho mỗi thẻ
+  const hadNone = [1, 2, 3, 4].some((s) => o[`prize${s}`] === 'none');
+  const prize = rollPrize(hadNone);
+  const cmds = [['HSET', key, `st${st}`, now, `prize${st}`, prize], ['HINCRBY', 'staff:stamps', String(st), '1']];
+  if (o.vid) cmds.push(['SADD', `st:${o.vid}`, String(st)], ['HSET', `u:${o.vid}`, `prize${st}`, prize, 'seen', now], ['ZADD', 'users', now, o.vid]);
+  return cmds;
+}
+
+// Mã dự phòng 6 số của trạm (khi không quét được QR): nhân sự đọc cho người chơi nhập.
+// Tính từ mật khẩu nhân sự + số trạm + phút hiện tại nên tự đổi mỗi phút; chấp nhận cả mã của phút trước.
+const CODE_STEP = 60 * 1000;
+function stationCode(st, at = Date.now()) {
+  const secret = process.env.STAFF_KEY || process.env.ADMIN_KEY || '';
+  const win = Math.floor(at / CODE_STEP);
+  const h = crypto.createHmac('sha256', secret).update(`tram:${st}:${win}`).digest();
+  return String(h.readUInt32BE(0) % 1000000).padStart(6, '0');
+}
+function stationOfCode(code, at = Date.now()) {
+  for (const st of [1, 2, 3, 4]) {
+    if (sameKey(code, stationCode(st, at)) || sameKey(code, stationCode(st, at - CODE_STEP))) return st;
+  }
+  return 0;
+}
+
 // Thẻ ở dạng gửi cho người chơi / staff
 function passView(h) {
   if (!h || !h.pid) return null;
@@ -77,4 +103,4 @@ async function checkKey(req, keys) {
   return { ok: false, status: 401 };
 }
 
-module.exports = { configured, redis, toObject, readBody, PID_RE, rollPrize, PRIZE_KEYS, passView, checkKey };
+module.exports = { configured, redis, toObject, readBody, PID_RE, rollPrize, PRIZE_KEYS, passView, checkKey, stampCmds, stationCode, stationOfCode, CODE_STEP };

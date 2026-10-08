@@ -1,9 +1,11 @@
 // /api/pass — thẻ thông hành lưu trên máy chủ để staff tra được và đóng dấu.
 //   GET  /api/pass?id=TAO-XXXXXX   → trạng thái thẻ (dấu, quà vòng quay, đã trao quà). Điện thoại người chơi gọi định kỳ.
 //   POST /api/pass {pid, name, vid, gift} → tạo thẻ (hoặc đưa thẻ có sẵn trên máy lên máy chủ).
+//   POST /api/pass {action:'code', pid, code} → tự đóng dấu bằng mã dự phòng 6 số nhân sự đọc (khi không quét được QR).
+//        Mỗi thẻ sai 8 lần thì khoá 15 phút.
 // Mã thẻ đóng vai trò "chìa khoá" của người chơi: ai có mã mới đọc được thẻ, và chỉ đọc chứ không sửa được dấu.
 // Redis: pass:{pid} hash  pid, name, vid, created, gift, st{n} (giờ đóng dấu), prize{n}, given{n}, claimed
-const { configured, redis, toObject, readBody, PID_RE, passView } = require('./_store');
+const { configured, redis, toObject, readBody, PID_RE, passView, stampCmds, stationOfCode } = require('./_store');
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -15,6 +17,24 @@ module.exports = async (req, res) => {
     const [h] = await redis([['HGETALL', `pass:${id}`]]);
     const view = passView(toObject(h));
     return view ? res.status(200).json(view) : res.status(404).json({ error: 'notfound' });
+  }
+
+  if (req.method === 'POST' && (readBody(req) || {}).action === 'code') {
+    const b = readBody(req);
+    const pid = String(b.pid || '').toUpperCase();
+    const code = String(b.code || '').replace(/\D/g, '');
+    if (!PID_RE.test(pid) || code.length !== 6) return res.status(400).json({ error: 'input' });
+    const key = `pass:${pid}`, fk = `fail:code:${pid}`;
+    const [h, fails] = await redis([['HGETALL', key], ['GET', fk]]);
+    const o = toObject(h);
+    if (!o.pid) return res.status(404).json({ error: 'notfound' });
+    if (Number(fails || 0) >= 8) return res.status(429).json({ error: 'locked' });
+    const st = stationOfCode(code);
+    if (!st) { await redis([['INCR', fk], ['EXPIRE', fk, '900']]); return res.status(400).json({ error: 'code' }); }
+    const cmds = o[`st${st}`] ? [] : stampCmds(o, key, st, String(Date.now()));
+    cmds.push(['HGETALL', key]);
+    const out = await redis(cmds);
+    return res.status(200).json({ station: st, note: o[`st${st}`] ? 'already' : '', pass: passView(toObject(out[out.length - 1])) });
   }
 
   if (req.method === 'POST') {

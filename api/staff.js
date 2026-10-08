@@ -4,8 +4,9 @@
 //   {action:'stamp',  pid, station}       → đóng dấu trạm + máy chủ bốc quà vòng quay của trạm đó
 //   {action:'give',   pid, station}       → xác nhận đã trao quà vòng quay của trạm
 //   {action:'checkout', pid}              → xác nhận đã trao quà cuối (đủ 4 dấu)
+//   {action:'code', station}              → mã dự phòng 6 số của trạm (đổi mỗi phút) để người chơi tự nhập
 // Sai mật khẩu 5 lần thì khoá 15 phút.
-const { configured, redis, toObject, readBody, PID_RE, rollPrize, passView, checkKey } = require('./_store');
+const { configured, redis, toObject, readBody, PID_RE, passView, checkKey, stampCmds, stationCode, CODE_STEP } = require('./_store');
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -19,6 +20,12 @@ module.exports = async (req, res) => {
 
     const b = readBody(req) || {};
     if (b.action === 'login') return res.status(200).json({ role: auth.role });
+    if (b.action === 'code') {
+      const s = Number(b.station);
+      if (!(s >= 1 && s <= 4)) return res.status(400).json({ error: 'station' });
+      const now = Date.now();
+      return res.status(200).json({ code: stationCode(s, now), expiresIn: CODE_STEP - (now % CODE_STEP) });
+    }
 
     const pid = String(b.pid || '').toUpperCase();
     if (!PID_RE.test(pid)) return res.status(400).json({ error: 'id' });
@@ -34,14 +41,7 @@ module.exports = async (req, res) => {
     if (b.action === 'stamp') {
       if (!(st >= 1 && st <= 4)) return res.status(400).json({ error: 'station' });
       if (o[`st${st}`]) note = 'already';
-      else {
-        // Luật "không có gì" tối đa 1 lần cho mỗi thẻ
-        const hadNone = [1, 2, 3, 4].some((s) => o[`prize${s}`] === 'none');
-        const prize = rollPrize(hadNone);
-        cmds.push(['HSET', key, `st${st}`, now, `prize${st}`, prize]);
-        if (o.vid) cmds.push(['SADD', `st:${o.vid}`, String(st)], ['HSET', `u:${o.vid}`, `prize${st}`, prize, 'seen', now], ['ZADD', 'users', now, o.vid]);
-        cmds.push(['HINCRBY', 'staff:stamps', String(st), '1']);
-      }
+      else cmds.push(...stampCmds(o, key, st, now));
     } else if (b.action === 'give') {
       if (!(st >= 1 && st <= 4) || !o[`st${st}`]) return res.status(400).json({ error: 'station' });
       if (o[`given${st}`]) note = 'already'; else cmds.push(['HSET', key, `given${st}`, now]);

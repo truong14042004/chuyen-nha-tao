@@ -73,7 +73,26 @@
     $('#where-name').textContent = place ? STATIONS[place - 1] : 'Bàn check-out';
     $('#scan-title').textContent = place ? 'Quét QR hộ chiếu để đóng dấu' : 'Quét QR hộ chiếu để trao quà cuối';
     renderLog();
+    loadCode();
   }
+
+  // ---------------------------------------------------------------- mã dự phòng 6 số của trạm (đổi mỗi phút)
+  let codeTimer = 0;
+  async function loadCode() {
+    clearTimeout(codeTimer);
+    const box = $('#otp');
+    box.hidden = !place;
+    if (!place || $('#app').hidden) return;
+    const res = await api({ action: 'code', station: place });
+    if (res.status !== 200) { $('#otp-code').textContent = '······'; codeTimer = setTimeout(loadCode, 10000); return; }
+    const { code, expiresIn } = res.data;
+    $('#otp-code').textContent = code.slice(0, 3) + ' ' + code.slice(3);
+    const bar = $('#otp-bar');
+    bar.style.transition = 'none'; bar.style.transform = `scaleX(${expiresIn / 60000})`;
+    requestAnimationFrame(() => { bar.style.transition = `transform ${expiresIn}ms linear`; bar.style.transform = 'scaleX(0)'; });
+    codeTimer = setTimeout(loadCode, expiresIn + 300);
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && session) loadCode(); });
 
   // ---------------------------------------------------------------- camera
   async function startScan() {
