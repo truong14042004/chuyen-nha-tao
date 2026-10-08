@@ -852,6 +852,7 @@
     if (fc) fc.hidden = on;
     if (hint) hint.hidden = !on;
     renderCheckout();
+    renderRegister();
   }
   async function pushPass(tries = 0) {
     if (!pass || !pass.synced) return false;
@@ -892,6 +893,23 @@
     if (JSON.stringify(pass.given) !== beforeGiven) ppRefresh([3, 4, 5, 6]);
     if (pass.claimed && !wasClaimed) { renderCheckout(); toast('Nhân sự đã xác nhận trao quà cuối. Chúc bạn năm mới thật ấm!', 'gold', 'gift'); }
   }
+  // Mã QR lớn giữa màn hình cho nhân sự quét (mã trong trang hộ chiếu nhỏ, phải lật trang mới thấy)
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('[data-show-qr]') || !pass) return;
+    ask({
+      title: 'Mã QR hộ chiếu',
+      html: `<div class="qr-big" id="qr-big" role="img" aria-label="Mã QR của thẻ ${esc(pass.id)}"></div>
+        <p class="qr-big-id">${esc(pass.id)} · ${esc(pass.nickname)}</p>
+        <p class="help" style="text-align:center">Đưa màn hình cho nhân sự quét. Quét chậm thì tăng độ sáng màn hình.</p>`,
+      buttons: [{ label: 'Xong', value: 'ok', cls: 'btn-primary' }]
+    });
+    const box = $('#qr-big');
+    if (typeof QRCode !== 'undefined') new QRCode(box, { text: location.origin + '/?the=' + pass.id, width: 260, height: 260, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+    else box.textContent = pass.id;
+    track('show_qr');
+    pullPass();
+  });
+
   // Hỏi máy chủ 6 giây một lần, chỉ khi phần hộ chiếu đang hiện trên màn hình (lúc đưa QR cho staff),
   // trang không bị ẩn, và thẻ còn việc chờ (chưa đủ dấu hoặc chưa nhận quà cuối). Giữ số lệnh trong gói Upstash miễn phí.
   server.inView = false;
@@ -925,7 +943,11 @@
     box.innerHTML = `
       <span class="gate-ico" aria-hidden="true"><i class="ph ph-identification-card"></i></span>
       <h3>Bạn đã có thẻ thông hành</h3>
-      <p class="lead">Mã thẻ <strong class="mono">${esc(pass.id)}</strong> mang tên <strong>${esc(pass.nickname)}</strong>, đã đóng ${pass.stamps.length}/4 dấu. Hộ chiếu ở bên cạnh.</p>
+      <p class="lead">Mã thẻ <strong class="mono">${esc(pass.id)}</strong> mang tên <strong>${esc(pass.nickname)}</strong>, đã đóng ${pass.stamps.length}/4 dấu.</p>
+      <div class="reg-has-actions">
+        <a class="btn btn-ghost btn-sm" href="#ticket-slot"><i class="ph ph-book-open" aria-hidden="true"></i> Xem hộ chiếu</a>
+        ${server.on ? '<button class="btn btn-primary btn-sm" type="button" data-show-qr><i class="ph ph-qr-code" aria-hidden="true"></i> Mở mã QR</button>' : ''}
+      </div>
       <button class="linklike" type="button" id="btn-new-pass">Không phải bạn? Tạo thẻ khác</button>`;
     $('#btn-new-pass').addEventListener('click', async () => {
       const v = await ask({
@@ -1329,7 +1351,9 @@
         <p class="flip-status" id="pp-status" aria-live="polite">Bìa hộ chiếu</p>
         <button class="icon-btn" type="button" id="pp-next" aria-label="Trang sau"><i class="ph ph-caret-right" aria-hidden="true"></i></button>
       </div>
-      <p class="pp-staff-hint" id="pp-staff-hint" ${server.on && n < 4 ? '' : 'hidden'}><i class="ph ph-qr-code" aria-hidden="true"></i> Đến mỗi trạm, đưa mã QR trên trang thông tin hộ chiếu cho nhân sự quét. Dấu sẽ tự hiện ở đây.</p>
+      <div class="pp-staff-hint" id="pp-staff-hint" ${server.on && n < 4 ? '' : 'hidden'}><i class="ph ph-qr-code" aria-hidden="true"></i>
+        <span>Đến mỗi trạm, đưa mã QR hộ chiếu cho nhân sự quét. Dấu sẽ tự hiện ở đây.</span>
+        <button class="btn btn-primary btn-sm" type="button" data-show-qr><i class="ph ph-qr-code" aria-hidden="true"></i> Mở mã QR</button></div>
       ${n < 4 ? `<form class="code-entry pp-code" id="form-code" novalidate ${server.on ? 'hidden' : ''}>
         <label for="f-code" style="font-weight:600;font-size:15px">Mã QR mờ hoặc không quét được? Nhập mã trạm</label>
         <div class="code-row">
@@ -1726,7 +1750,7 @@
       <p style="color:var(--text-muted);margin-top:6px">${pass.claimed ? 'Quà đã được trao. Cảm ơn bạn đã đồng hành.' : 'Đưa mã này cho nhân sự tại bàn check-out. Mã chỉ dùng được một lần.'}</p></div>
       <p class="gift-code ${pass.claimed ? 'is-claimed' : ''}" aria-label="Mã nhận quà ${pass.giftCode.split('').join(' ')}">${pass.giftCode}</p>
       ${pass.claimed ? '' : server.on
-        ? '<p class="help"><i class="ph ph-qr-code" aria-hidden="true"></i> Nhân sự quét QR hộ chiếu của bạn ở bàn check-out để xác nhận trao quà.</p>'
+        ? '<p class="help"><i class="ph ph-qr-code" aria-hidden="true"></i> Nhân sự quét QR hộ chiếu của bạn ở bàn check-out để xác nhận trao quà.</p><button class="btn btn-primary" type="button" data-show-qr><i class="ph ph-qr-code" aria-hidden="true"></i> Mở mã QR</button>'
         : '<button class="btn btn-ghost" type="button" id="btn-claim"><i class="ph ph-hand-heart" aria-hidden="true"></i> Nhân sự xác nhận đã trao quà</button>'}
       ${wonList()}
       <div class="optin">

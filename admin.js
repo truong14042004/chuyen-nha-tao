@@ -114,7 +114,7 @@
       [R.filter((r) => r.stampsN === 4).length, 'Đủ 4 dấu trạm'],
       [`${prize('sticker')} · ${prize('keychain')} · ${prize('blindbox')}`, 'Quà đã trúng: sticker · móc khoá · blindbox']
     ];
-    $('#tiles').innerHTML = tiles.map(([v, l]) => `<div class="tile"><b>${v}</b><span>${l}</span></div>`).join('');
+    $('#tiles').innerHTML = tiles.map(([v, l]) => `<div class="tile"><b class="${String(v).length > 8 ? 'long' : ''}">${v}</b><span>${l}</span></div>`).join('');
     $('#people-sub').textContent = state.source === 'api' ? `${R.length} người, sắp theo hoạt động gần nhất` : 'Số liệu của trình duyệt này';
     renderRows();
   }
