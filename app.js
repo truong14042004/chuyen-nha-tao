@@ -2247,6 +2247,51 @@
     });
   }
 
+  /* Dải tranh dưới hero (gợi ý chuyển động trong bộ layer):
+   *  - Mây: trượt vào từ hai bên, phóng to 60% → 100%, rồi trôi qua lại khoảng 10px.
+   *  - Sóng: neo cạnh dưới, kéo dãn 106% và đẩy lên 14px rồi hạ về (chỉ đi lên, không lộ nền).
+   *  - Cá: bay vào từ ngoài khung, lượn quá đà rồi dừng, sau đó nhấp nhô 10px.
+   *  - Cuộn trang: mây và cá lệch theo chiều sâu (parallax), sóng đứng yên.
+   * Vào khung nhìn mới chạy; ra khỏi khung thì tạm dừng vòng lặp để đỡ tốn pin. */
+  (function initScene() {
+    const stage = $('#scene-stage');
+    if (!stage || reduceMotion) return;
+    const layers = (kind) => $$(`.scene-layer[data-kind="${kind}"]`, stage);
+    const img = (el) => el.firstElementChild;
+    const intro = gsap.timeline({ paused: true, defaults: { ease: 'power3.out' } });
+    layers('cloud').forEach((el, i) => {
+      const left = el.dataset.from === 'left';
+      intro.from(img(el), { xPercent: left ? -70 : 70, scale: 0.6, opacity: 0, duration: 1.6 }, i * 0.09);
+    });
+    layers('wave').forEach((el, i) => {
+      intro.from(img(el), { yPercent: 18, scaleY: 0.9, transformOrigin: '50% 100%', opacity: 0, duration: 1.3, ease: 'power2.out' }, 0.25 + i * 0.12);
+    });
+    layers('fish').forEach((el, i) => {
+      const left = el.dataset.from === 'left';
+      intro.fromTo(img(el),
+        { x: left ? '-120%' : '120%', y: left ? '40%' : '-60%', rotation: left ? -28 : 24, opacity: 0 },
+        { x: 0, y: 0, rotation: 0, opacity: 1, duration: 1.9, ease: 'back.out(1.6)' }, 0.55 + i * 0.3);
+    });
+    const loops = [];
+    intro.eventCallback('onComplete', () => {
+      layers('fish').forEach((el, i) => loops.push(gsap.to(img(el), { y: i ? -10 : 10, rotation: i ? 2.5 : -2.5, duration: 2.4 + i * 0.5, ease: 'sine.inOut', yoyo: true, repeat: -1 })));
+      layers('cloud').forEach((el, i) => loops.push(gsap.to(img(el), { x: i % 2 ? -10 : 10, duration: 3.6 + (i % 3) * 0.7, ease: 'sine.inOut', yoyo: true, repeat: -1 })));
+      layers('wave').forEach((el, i) => loops.push(gsap.to(img(el), { scaleY: 1.06, y: -14, transformOrigin: '50% 100%', duration: 1.5, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: i * 0.7 })));
+      if (!sceneOn) loops.forEach((t) => t.pause());
+    });
+    let sceneOn = false;
+    ScrollTrigger.create({
+      trigger: '#canh', start: 'top 80%', end: 'bottom top',
+      onEnter: () => intro.play(),
+      onToggle: (self) => { sceneOn = self.isActive; loops.forEach((t) => (self.isActive ? t.resume() : t.pause())); }
+    });
+    // Chiều sâu khi cuộn: cá lệch nhiều nhất, mây ít hơn
+    const depth = { fish: 60, cloud: 28 };
+    Object.entries(depth).forEach(([kind, d]) => layers(kind).forEach((el) => {
+      gsap.fromTo(el, { y: d }, { y: -d, ease: 'none', scrollTrigger: { trigger: '#canh', start: 'top bottom', end: 'bottom top', scrub: 0.8 } });
+    }));
+  })();
+
   // Font tải xong làm đổi chiều cao chữ → tính lại vị trí trigger
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { ScrollTrigger.refresh(); moveIndicator(false); });
 })();
