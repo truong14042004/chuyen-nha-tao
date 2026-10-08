@@ -1356,23 +1356,17 @@ body::after {
 /* =========================================================================
    NỀN PHẦN SÁCH (ngay dưới hero): tranh cá chép vượt sóng dưới trăng, tông pastel.
    Tranh đứng yên theo khung màn hình khi cuộn qua phần sách (sticky), quyển sách trượt qua phía trên.
-   Điện thoại: tranh dọc phủ kín. Máy tính: tranh nét ở giữa cao bằng màn hình, hai bên là trời cùng màu
-   + dải sóng cắt từ đáy tranh lặp đối xứng.
+   Canvas vẽ lại tranh: cá bơi lượn, mây hai bên bay vào (app.js: sceneCanvas).
    ========================================================================= */
 /* overflow: clip (không dùng hidden): hidden biến phần sách thành khung cuộn riêng, làm hỏng sticky */
 #doc-sach { isolation: isolate; overflow: clip; padding-top: clamp(170px, 38vh, 340px); padding-bottom: clamp(90px, 16vh, 160px); }
-.scene { position: absolute; inset: 0; z-index: -1; pointer-events: none; overflow: clip;
-  background: linear-gradient(180deg, #bdb2bb 0, #d0c1be 15%, #dec8be 30%, #ddcdcc 45%, #d0c6c9 60%, #d3c9bf 72%, #d0cdc2 80%); }
+.scene { position: absolute; inset: 0; z-index: -1; pointer-events: none; overflow: clip; background: #c4bbc8; }
 .scene-sticky { position: sticky; top: 0; height: 100vh; height: 100lvh; overflow: hidden; }
-.scene-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 42%; display: block; z-index: 1; }
-.scene-waves { display: none; }
-/* Nối với hero tối ở trên, chuyển dần sang nền kem ở dưới (không phủ sương lên tranh) */
+.scene-fallback, .scene-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.scene-fallback { object-fit: cover; object-position: 50.5% 50%; }
+.scene-canvas { opacity: 0; transition: opacity .6s ease; }
+.scene.is-live .scene-canvas { opacity: 1; }
+/* Nối với hero tối ở trên, chuyển dần sang nền kem ở dưới */
 .scene::after { content: ""; position: absolute; inset: 0; z-index: 3; pointer-events: none;
   background: linear-gradient(180deg, #120b07 0, rgba(18, 11, 7, 0) 60px), linear-gradient(180deg, rgba(255, 248, 240, 0) 86%, var(--bg) 100%); }
 #doc-sach .flip-hint { text-shadow: 0 0 10px rgba(255, 246, 236, .95); color: var(--text); }
-@media (min-width: 900px) and (min-aspect-ratio: 1/1) {
-  .scene-img { left: 50%; width: auto; aspect-ratio: 510 / 859; transform: translateX(-50%); object-fit: cover;
-    -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); }
-  .scene-waves { display: block; position: absolute; left: 0; right: 0; bottom: 0; height: 20%; z-index: 0;
-    background: url("images/song-ngang.webp") repeat-x center bottom / auto 100%; }
-}

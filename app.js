@@ -2187,6 +2187,100 @@
   window.addEventListener('pagehide', () => { stopVoice(); stopTale(); });
 
   /* ======================================================================
+   * Nền phần sách vẽ bằng canvas từ chính bức tranh cá chép (images/nen/):
+   * nen.webp là tranh đã xoá 3 cá và 2 cụm mây ngoài (chỗ trống đã vá),
+   * các lớp còn lại cắt ra từ tranh, đặt lại đúng toạ độ cũ rồi chuyển động:
+   *  - mây hai bên bay vào từ ngoài khung khi cuộn tới phần sách, sau đó trôi nhẹ;
+   *  - cá bơi lượn quanh chỗ cũ: lượn ngang, nhấp nhô, nghiêng mình như quẫy đuôi.
+   * Biên độ nhỏ để không lộ chỗ vá. Chỉ vẽ khi phần sách đang trên màn hình và tab đang mở.
+   * Giảm chuyển động: vẽ tĩnh. Canvas lỗi thì vẫn còn ảnh gốc (.scene-fallback).
+   * ==================================================================== */
+  (function sceneCanvas() {
+    const cv = $('#scene-canvas');
+    if (!cv || !cv.getContext) return;
+    const ctx = cv.getContext('2d');
+    const W = 2000, H = 1116, FOCUS_X = 0.505; // toạ độ tranh gốc; giữ trăng ở giữa khi cắt khung dọc
+    const LAYERS = [
+      { src: 'may-trai', x: 0, y: 243, w: 387, h: 230, kind: 'cloud', from: -1, phase: 0.4, delay: 0 },
+      { src: 'may-phai', x: 1657, y: 345, w: 327, h: 153, kind: 'cloud', from: 1, phase: 2.1, delay: 0.15 },
+      { src: 'ca-trai', x: 607, y: 113, w: 374, h: 343, kind: 'fish', ax: 4, ay: 5, rot: 1.2, speed: 0.55, phase: 4 },
+      { src: 'ca-phai', x: 1169, y: 105, w: 385, h: 198, kind: 'fish', ax: 16, ay: 8, rot: 3, speed: 0.45, phase: 1.3 },
+      { src: 'ca-duoi', x: 561, y: 595, w: 412, h: 268, kind: 'fish', ax: 12, ay: 12, rot: 4, speed: 0.6, phase: 0 }
+    ];
+    const ENTER = 2.2; // giây mây bay vào
+    const imgs = {};
+    let scale = 1, ox = 0, oy = 0, enterAt = null, inView = false, raf = 0;
+
+    const load = (name) => new Promise((ok, fail) => { const im = new Image(); im.onload = () => ok(im); im.onerror = fail; im.src = `images/nen/${name}.webp`; imgs[name] = im; });
+    const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+
+    function resize() {
+      const r = cv.getBoundingClientRect();
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      cv.width = Math.max(1, Math.round(r.width * dpr));
+      cv.height = Math.max(1, Math.round(r.height * dpr));
+      scale = Math.max(cv.width / W, cv.height / H);            // phủ kín khung (cover)
+      ox = Math.min(0, Math.max(cv.width - W * scale, cv.width / 2 - W * scale * FOCUS_X));
+      oy = (cv.height - H * scale) / 2;
+    }
+
+    function draw(now) {
+      const t = now / 1000;
+      const e = enterAt === null ? 0 : reduceMotion ? 1 : (now - enterAt) / 1000;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      ctx.setTransform(scale, 0, 0, scale, ox, oy);
+      ctx.drawImage(imgs.nen, 0, 0, W, H);
+      for (const L of LAYERS) {
+        const im = imgs[L.src];
+        if (L.kind === 'cloud') {
+          const p = reduceMotion ? 1 : easeOut(Math.min(1, Math.max(0, (e - L.delay) / ENTER)));
+          if (p <= 0) continue;
+          const fly = (1 - p) * L.from * (L.w + 260);                     // bay vào từ ngoài khung
+          const drift = reduceMotion ? 0 : Math.sin(t * 0.32 + L.phase) * 9 * p; // rồi trôi nhẹ
+          ctx.globalAlpha = Math.min(1, p * 1.4);
+          ctx.drawImage(im, L.x + fly + drift, L.y + (reduceMotion ? 0 : Math.sin(t * 0.25 + L.phase) * 3), L.w, L.h);
+          ctx.globalAlpha = 1;
+        } else {
+          const k = reduceMotion ? 0 : t * L.speed + L.phase;
+          const dx = Math.sin(k) * L.ax, dy = Math.sin(k * 2) * L.ay * 0.5 + Math.sin(k * 0.7) * L.ay * 0.5;
+          const rot = Math.sin(k * 1.6 + 0.8) * L.rot * Math.PI / 180;    // nghiêng mình như quẫy đuôi
+          const cx = L.x + L.w / 2, cy = L.y + L.h / 2;
+          ctx.save();
+          ctx.translate(cx + dx, cy + dy); ctx.rotate(rot);
+          ctx.drawImage(im, -L.w / 2, -L.h / 2, L.w, L.h);
+          ctx.restore();
+        }
+      }
+    }
+
+    function loop(now) {
+      if (cv.width <= 1) resize(); // trang tải lúc đang ẩn thì khung đo được 0, đo lại khi hiện
+      draw(now);
+      raf = inView && !reduceMotion && document.visibilityState === 'visible' ? requestAnimationFrame(loop) : 0;
+    }
+    const kick = () => { if (!raf) raf = requestAnimationFrame(loop); };
+
+    Promise.all(['nen', ...LAYERS.map((l) => l.src)].map(load)).then(() => {
+      resize();
+      draw(performance.now());
+      $('.scene').classList.add('is-live');
+      // Trang tải lúc đang ẩn: khung đo được 0 và trình duyệt tạm dừng rAF/ResizeObserver; thử lại bằng hẹn giờ
+      const retry = () => { if (cv.width > 1) return; resize(); draw(performance.now()); if (cv.width <= 1) setTimeout(retry, 400); };
+      setTimeout(retry, 300);
+      new IntersectionObserver((es) => {
+        inView = es.some((x) => x.isIntersecting);
+        if (inView && enterAt === null) enterAt = performance.now();
+        if (inView) kick();
+      }, { threshold: 0.05 }).observe($('#doc-sach'));
+      // Đo lại mỗi khi khung đổi kích thước (xoay máy, đổi cỡ cửa sổ, trang từ ẩn sang hiện)
+      if ('ResizeObserver' in window) new ResizeObserver(() => { resize(); draw(performance.now()); }).observe(cv);
+      else window.addEventListener('resize', () => { resize(); draw(performance.now()); });
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && inView) kick(); });
+    }).catch(() => { /* lỗi tải: giữ ảnh gốc */ });
+  })();
+
+  /* ======================================================================
    * HERO fallback (không có WebGL)
    * ==================================================================== */
   if (!window.carpScene) $('#hero').classList.add('no-webgl');

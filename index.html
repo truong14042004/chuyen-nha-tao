@@ -104,10 +104,11 @@
          ================================================================= -->
     <section class="section" id="doc-sach" aria-label="Cuốn sách bốn chương">
       <!-- Nền của phần sách: tranh cá chép vượt sóng dưới trăng (tông pastel), đứng yên theo màn hình khi cuộn.
-           Máy tính: tranh ở giữa, hai bên là trời cùng màu + dải sóng nối tiếp. -->
-      <div class="scene" aria-hidden="true"><div class="scene-sticky" id="scene">
-        <div class="scene-waves"></div>
-        <img class="scene-img" src="images/nen-ca-chep.webp" alt="" decoding="async">
+           Canvas vẽ lại từ chính bức tranh: nền đã xoá cá và 2 cụm mây ngoài, cá và mây là lớp cắt từ tranh (app.js: sceneCanvas).
+           Ảnh gốc hiện sẵn trong lúc canvas chưa chạy. -->
+      <div class="scene" aria-hidden="true"><div class="scene-sticky">
+        <img class="scene-fallback" src="images/nen/goc.webp" alt="" decoding="async">
+        <canvas class="scene-canvas" id="scene-canvas"></canvas>
       </div></div>
       <div class="container">
         <!-- S02 + S03: quyển sách lật trang (StPageFlip). Trang do app.js dựng. -->
