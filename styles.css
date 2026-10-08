@@ -1291,17 +1291,34 @@ body::after {
 /* =========================================================================
    VÒNG QUAY MAY MẮN (sau mỗi dấu trạm)
    ========================================================================= */
-.wheel-wrap { position: relative; width: min(280px, 72vw); aspect-ratio: 1; margin: 6px auto 0; }
-.wheel { width: 100%; height: 100%; border-radius: 50%; box-shadow: 0 14px 30px -12px rgba(90, 30, 10, .55), 0 0 0 6px #f3e3bb, 0 0 0 8px #9b2a17; will-change: transform; }
+.wheel-wrap { position: relative; width: min(290px, 74vw); aspect-ratio: 1; margin: 10px auto 0; }
+.wheel { width: 100%; height: 100%; border-radius: 50%; box-shadow: 0 16px 30px -14px rgba(90, 20, 5, .6), 0 0 0 5px #f3d27a, 0 0 0 7px #7a1a0e; will-change: transform; }
 .wheel svg { display: block; width: 100%; height: 100%; }
-.wheel-pin { position: absolute; z-index: 2; top: -10px; left: 50%; width: 0; height: 0; transform: translateX(-50%);
-  border-left: 14px solid transparent; border-right: 14px solid transparent; border-top: 26px solid #2a1710; filter: drop-shadow(0 3px 2px rgba(0, 0, 0, .35)); }
-.wheel-pin::after { content: ""; position: absolute; top: -32px; left: -7px; width: 14px; height: 14px; border-radius: 50%; background: #f3d68a; border: 2px solid #2a1710; }
-.wheel-result { min-height: 24px; text-align: center; font-size: 15.5px; color: var(--text); }
+/* Kim chỉ: giọt đỏ viền vàng, gắn bông hoa đào */
+.wheel-pin { position: absolute; z-index: 2; top: -22px; left: 50%; width: 38px; transform: translateX(-50%); filter: drop-shadow(0 3px 2px rgba(60, 10, 0, .4)); }
+.wheel-pin svg { display: block; width: 100%; }
+.wheel-result { min-height: 24px; text-align: center; font-size: 15.5px; color: #3a2614; }
 .wheel-result i { font-size: 20px; vertical-align: -4px; }
-.wheel-result.is-win { color: var(--accent-ink); }
-.wheel-result.is-win strong { color: var(--accent-ink); }
-.wheel-result.is-miss { color: var(--text-muted); }
+.wheel-result.is-win, .wheel-result.is-win strong { color: #a11d14; }
+.wheel-result.is-miss { color: #4a5a40; }
+
+/* Hộp thoại vòng quay kiểu Tết: giấy cũ, viền đỏ kép, tựa nét bút lông */
+.dlg-tet .dlg-box {
+  position: relative; z-index: 1;
+  background: #f6ead0 url("images/giay-cu.jpg") center / cover;
+  border: 0; box-shadow: inset 0 0 0 3px #b8241c, inset 0 0 0 7px #f6ead0, inset 0 0 0 8.5px #b8241c, 0 24px 60px -20px rgba(60, 10, 0, .6);
+  color: #3a2614; padding: 26px 26px 20px;
+}
+.dlg-tet .dlg-title { font-family: 'Comforter Brush', 'Playfair Display', cursive; font-weight: 400; font-size: 46px; line-height: 1; text-align: center; color: #b8241c; }
+.dlg-tet .dlg-body { color: #4b3523; }
+.tet-sub { text-align: center; font-size: 14.5px; }
+.dlg-tet .dlg-actions { justify-content: center; }
+.dlg-tet .btn-quiet { color: #6b4a2e; }
+.btn-tet { background: #b8241c; color: #fff3d6; border: 2px solid #f3d27a; box-shadow: 0 0 0 2px #b8241c, 0 10px 22px -10px rgba(120, 20, 5, .7); font-weight: 800; letter-spacing: .02em; }
+.btn-tet:hover { background: #a11d14; }
+.btn-tet i { color: #f3d27a; }
+/* Lớp hoa đào và pháo nổ, phủ màn hình, không chặn thao tác */
+.tet-fx { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 3; pointer-events: none; }
 
 /* Kết quả vòng quay trên trang visa */
 .pp-visa-foot { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; align-items: center; }
