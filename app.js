@@ -2282,16 +2282,16 @@
 
   /* ======================================================================
    * Ghi chú hướng dẫn kiểu bóng thoại truyện tranh (phần thẻ thông hành):
-   * lần đầu cuộn tới thì bật lên khoảng 8 giây (vạch đếm ngược; rê chuột hoặc chạm vào thì tạm dừng),
-   * rồi thu thành bóng thoại ở góc dưới trái, kèm đám mây chú thích nổi lên. Bấm bóng thoại để xem lại.
-   * Bóng thoại chỉ hiện khi đang ở phần thẻ thông hành hoặc lá sớ. Lần sau quay lại thì chỉ hiện bóng thoại.
+   * phần giới thiệu (tiêu đề + 3 bước) hiện khoảng 8 giây khi cuộn tới, có vạch đếm ngược,
+   * rồi thu nhỏ bay vào góc dưới trái thành bóng thoại, kèm đám mây chú thích nổi lên.
+   * Bấm bóng thoại để mở ghi chú hướng dẫn chi tiết. Bóng thoại chỉ hiện khi đang ở phần thẻ thông hành.
    * ==================================================================== */
   (function guideNote() {
     const g = $('#guide');
     if (!g) return;
     const note = $('#guide-note'), bubble = $('#guide-bubble'), bar = $('.guide-timer i', g);
     const DUR = 8000;
-    let timer = 0, cloudTimer = 0, left = DUR, startedAt = 0, started = false;
+    let timer = 0, cloudTimer = 0, left = DUR, startedAt = 0;
 
     function runTimer() {
       clearTimeout(timer);
@@ -2341,19 +2341,60 @@
     bubble.addEventListener('click', () => (g.classList.contains('is-open') ? dock() : open(false)));
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && g.classList.contains('is-open')) dock(); });
 
-    // Chỉ hiện trong phần thẻ thông hành và lá sớ; lần đầu vào phần thẻ thông hành thì bật ghi chú
-    const zones = new Map();
+    // Phần giới thiệu: hiện 8 giây (rê chuột thì tạm dừng) rồi thu vào bóng thoại
+    const intro = $('#pp-intro'), introBar = $('.pp-intro-timer i', intro);
+    let introLeft = DUR, introAt = 0, introTimer = 0, introDone = false, introVisible = false;
+    function introRun() {
+      if (introDone) return;
+      clearTimeout(introTimer);
+      introAt = Date.now();
+      introBar.style.transition = 'none';
+      introBar.style.transform = `scaleX(${introLeft / DUR})`;
+      void introBar.offsetWidth;
+      introBar.style.transition = `transform ${introLeft}ms linear`;
+      introBar.style.transform = 'scaleX(0)';
+      introTimer = setTimeout(collapseIntro, introLeft);
+    }
+    function introPause() {
+      if (introDone || !introAt) return;
+      clearTimeout(introTimer);
+      introLeft = Math.max(1200, introLeft - (Date.now() - introAt));
+      introBar.style.transition = 'none';
+      introBar.style.transform = `scaleX(${introLeft / DUR})`;
+    }
+    function collapseIntro() {
+      if (introDone) return;
+      introDone = true;
+      clearTimeout(introTimer);
+      const finish = () => { intro.hidden = true; g.hidden = false; dock(); };
+      const inner = intro.firstElementChild;
+      if (reduceMotion || !introVisible || !inner.animate) { finish(); return; }
+      // Bay về chỗ bóng thoại (góc dưới trái), đồng thời khép chiều cao để phần dưới trồi lên
+      const r = inner.getBoundingClientRect();
+      const dx = 48 - (r.left + r.width / 2), dy = (innerHeight - 46) - (r.top + r.height / 2);
+      const h = intro.offsetHeight;
+      intro.style.overflow = 'visible';
+      inner.animate([
+        { transform: 'none', opacity: 1 },
+        { transform: `translate(${dx * 0.5}px, ${dy * 0.45}px) scale(.4) rotate(-4deg)`, opacity: 0.85, offset: 0.55 },
+        { transform: `translate(${dx}px, ${dy}px) scale(.04) rotate(-10deg)`, opacity: 0 }
+      ], { duration: 900, easing: 'cubic-bezier(.55,0,.35,1)', fill: 'forwards' });
+      intro.animate([{ height: h + 'px' }, { height: '0px' }], { duration: 650, delay: 250, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' });
+      setTimeout(finish, 900);
+    }
+    intro.addEventListener('mouseenter', introPause);
+    intro.addEventListener('mouseleave', introRun);
+
     new IntersectionObserver((es) => {
-      es.forEach((x) => zones.set(x.target, x.isIntersecting));
-      const inZone = [...zones.values()].some(Boolean);
+      introVisible = es[0].isIntersecting;
+      if (introVisible && !introAt && !introDone) setTimeout(introRun, 300);
+    }, { threshold: 0.5 }).observe(intro);
+
+    // Bóng thoại chỉ hiện trong phần thẻ thông hành
+    new IntersectionObserver((es) => {
+      const inZone = es[0].isIntersecting;
       g.classList.toggle('in-zone', inZone);
       if (!inZone && g.classList.contains('is-open')) dock();
-      if (inZone && !started) {
-        started = true;
-        g.hidden = false;
-        if (store.get('guide_seen', false)) dock();
-        else setTimeout(() => open(true), 700);
-      }
     }, { threshold: 0.12 }).observe($('#tram-trai-nghiem'));
   })();
 
@@ -2406,6 +2447,8 @@
       onEnter: (els) => gsap.to(els, { opacity: 1, y: 0, duration: 0.7, stagger: 0.08, ease: 'power3.out', overwrite: true })
     });
 
+    gsap.from('.flow-line', { scaleX: 0, duration: 0.9, stagger: 0.2, ease: 'power2.inOut', scrollTrigger: { trigger: '.flow', start: 'top 85%' } });
+    gsap.from('.flow .ico', { scale: 0.6, opacity: 0, duration: 0.5, stagger: 0.15, ease: 'back.out(1.6)', scrollTrigger: { trigger: '.flow', start: 'top 85%' } });
 
   }
 

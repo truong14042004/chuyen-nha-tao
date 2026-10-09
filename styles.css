@@ -1417,3 +1417,9 @@ body::after {
 
 .motion-reduced .guide-note, .motion-reduced .guide-bubble, .motion-reduced .guide-cloud { transition: opacity .2s, visibility 0s; animation: none !important; transform: none; }
 @media (max-width: 480px) { .guide-steps { font-size: 17.5px; } .guide-title { font-size: 24px; } }
+
+/* Phần giới thiệu thẻ thông hành: hiện 8 giây rồi thu vào bóng thoại hướng dẫn */
+.pp-intro-in { transform-origin: 50% 50%; }
+.pp-intro .flow { margin-bottom: 0; }
+.pp-intro-timer { display: block; height: 3px; margin: 22px 0 clamp(32px, 5vw, 48px); border-radius: 2px; background: var(--line); overflow: hidden; max-width: 320px; }
+.pp-intro-timer i { display: block; height: 100%; background: var(--accent); transform-origin: left center; transform: scaleX(1); }
