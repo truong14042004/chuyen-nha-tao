@@ -2406,8 +2406,6 @@
       onEnter: (els) => gsap.to(els, { opacity: 1, y: 0, duration: 0.7, stagger: 0.08, ease: 'power3.out', overwrite: true })
     });
 
-    gsap.from('.flow-line', { scaleX: 0, duration: 0.9, stagger: 0.2, ease: 'power2.inOut', scrollTrigger: { trigger: '.flow', start: 'top 85%' } });
-    gsap.from('.flow .ico', { scale: 0.6, opacity: 0, duration: 0.5, stagger: 0.15, ease: 'back.out(1.6)', scrollTrigger: { trigger: '.flow', start: 'top 85%' } });
 
   }
 
