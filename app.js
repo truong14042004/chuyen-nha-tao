@@ -2281,6 +2281,83 @@
   })();
 
   /* ======================================================================
+   * Ghi chú hướng dẫn kiểu bóng thoại truyện tranh (phần thẻ thông hành):
+   * lần đầu cuộn tới thì bật lên khoảng 8 giây (vạch đếm ngược; rê chuột hoặc chạm vào thì tạm dừng),
+   * rồi thu thành bóng thoại ở góc dưới trái, kèm đám mây chú thích nổi lên. Bấm bóng thoại để xem lại.
+   * Bóng thoại chỉ hiện khi đang ở phần thẻ thông hành hoặc lá sớ. Lần sau quay lại thì chỉ hiện bóng thoại.
+   * ==================================================================== */
+  (function guideNote() {
+    const g = $('#guide');
+    if (!g) return;
+    const note = $('#guide-note'), bubble = $('#guide-bubble'), bar = $('.guide-timer i', g);
+    const DUR = 8000;
+    let timer = 0, cloudTimer = 0, left = DUR, startedAt = 0, started = false;
+
+    function runTimer() {
+      clearTimeout(timer);
+      startedAt = Date.now();
+      bar.style.transition = 'none';
+      bar.style.transform = `scaleX(${left / DUR})`;
+      void bar.offsetWidth;
+      bar.style.transition = `transform ${left}ms linear`;
+      bar.style.transform = 'scaleX(0)';
+      timer = setTimeout(dock, left);
+    }
+    function pauseTimer() {
+      if (!g.classList.contains('is-open')) return;
+      clearTimeout(timer);
+      left = Math.max(800, left - (Date.now() - startedAt));
+      bar.style.transition = 'none';
+      bar.style.transform = `scaleX(${left / DUR})`;
+    }
+    function open(auto) {
+      clearTimeout(cloudTimer);
+      g.hidden = false;
+      g.classList.remove('is-docked', 'show-cloud');
+      g.classList.add('is-open');
+      bubble.setAttribute('aria-expanded', 'true');
+      left = DUR;
+      runTimer();
+      if (!auto) note.focus({ preventScroll: true });
+      track('guide_open', { auto: !!auto });
+    }
+    function dock() {
+      clearTimeout(timer);
+      const wasOpen = g.classList.contains('is-open');
+      g.classList.remove('is-open');
+      g.classList.add('is-docked', 'show-cloud');
+      bubble.setAttribute('aria-expanded', 'false');
+      store.set('guide_seen', true);
+      clearTimeout(cloudTimer);
+      cloudTimer = setTimeout(() => g.classList.remove('show-cloud'), 5000);
+      if (wasOpen && note.contains(document.activeElement)) bubble.focus({ preventScroll: true });
+    }
+
+    note.addEventListener('mouseenter', pauseTimer);
+    note.addEventListener('mouseleave', () => { if (g.classList.contains('is-open')) runTimer(); });
+    note.addEventListener('touchstart', pauseTimer, { passive: true });
+    note.addEventListener('focusin', pauseTimer);
+    $('.guide-x', g).addEventListener('click', dock);
+    bubble.addEventListener('click', () => (g.classList.contains('is-open') ? dock() : open(false)));
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && g.classList.contains('is-open')) dock(); });
+
+    // Chỉ hiện trong phần thẻ thông hành và lá sớ; lần đầu vào phần thẻ thông hành thì bật ghi chú
+    const zones = new Map();
+    new IntersectionObserver((es) => {
+      es.forEach((x) => zones.set(x.target, x.isIntersecting));
+      const inZone = [...zones.values()].some(Boolean);
+      g.classList.toggle('in-zone', inZone);
+      if (!inZone && g.classList.contains('is-open')) dock();
+      if (inZone && !started) {
+        started = true;
+        g.hidden = false;
+        if (store.get('guide_seen', false)) dock();
+        else setTimeout(() => open(true), 700);
+      }
+    }, { threshold: 0.12 }).observe($('#tram-trai-nghiem'));
+  })();
+
+  /* ======================================================================
    * HERO fallback (không có WebGL)
    * ==================================================================== */
   if (!window.carpScene) $('#hero').classList.add('no-webgl');

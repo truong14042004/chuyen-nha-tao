@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <!-- Font chữ có chân cho quyển sách cổ (có bộ ký tự tiếng Việt) -->
-  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Comforter+Brush&family=Potta+One&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Comforter+Brush&family=Potta+One&family=Patrick+Hand&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
   <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
   <link rel="stylesheet" href="styles.css">
@@ -321,6 +321,24 @@
   <dialog class="dlg" id="dlg" aria-labelledby="dlg-title"></dialog>
   <!-- Chọn ảnh khoảnh khắc (dùng chung cho trang visa trong hộ chiếu và lá sớ) -->
   <input class="sr-only" type="file" id="moment-input" accept="image/*" tabindex="-1" aria-hidden="true">
+  <!-- Ghi chú hướng dẫn kiểu bóng thoại truyện tranh (phần thẻ thông hành): bật lên ~8 giây rồi thu thành bóng thoại góc dưới trái -->
+  <aside class="guide" id="guide" hidden>
+    <div class="guide-note" id="guide-note" role="dialog" aria-labelledby="guide-title" tabindex="-1">
+      <button class="guide-x" type="button" aria-label="Thu gọn hướng dẫn"><i class="ph ph-minus" aria-hidden="true"></i></button>
+      <h3 class="guide-title" id="guide-title">Đi bốn trạm thế nào?</h3>
+      <ol class="guide-steps">
+        <li><b>Tạo thẻ thông hành</b> ở ô "Tạo thẻ", ở nhà hay tại cổng đều được.</li>
+        <li>Đến mỗi trạm, bấm <b>Mở mã QR</b> rồi đưa nhân sự quét. Không quét được thì nhập <b>mã 6 số</b> nhân sự đọc.</li>
+        <li>Mỗi dấu được <b>quay vòng may mắn</b> một lần, trúng gì nhận ngay tại trạm.</li>
+        <li>Đủ <b>4 dấu</b> thì ra bàn check-out nhận quà cuối và viết lá sớ.</li>
+      </ol>
+      <span class="guide-timer" aria-hidden="true"><i></i></span>
+    </div>
+    <button class="guide-bubble" id="guide-bubble" type="button" aria-label="Mở hướng dẫn đi bốn trạm" aria-expanded="false" aria-controls="guide-note">
+      <svg viewBox="0 0 64 60" aria-hidden="true"><path d="M32 4C16 4 4 14 4 27c0 7 4 13 10 17l-4 12 13-8c3 1 6 1 9 1 16 0 28-10 28-22S48 4 32 4Z" fill="#fffdf6" stroke="#2a1710" stroke-width="3.5" stroke-linejoin="round"/><text x="32" y="36" text-anchor="middle" font-family="Patrick Hand, Comic Sans MS, cursive" font-size="26" fill="#b8241c">?</text></svg>
+    </button>
+    <p class="guide-cloud" id="guide-cloud" aria-live="polite"><span>Hướng dẫn nằm ở đây nè!</span></p>
+  </aside>
   <div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
 
   <!-- Thư viện: three r147 (đủ examples/js), GSAP 3.12, QR code -->
